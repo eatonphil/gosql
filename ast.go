@@ -29,7 +29,7 @@ type SelectStatement struct {
 }
 
 type columnDefinition struct {
-	name token
+	name     token
 	datatype token
 }
 
@@ -39,8 +39,8 @@ type CreateTableStatement struct {
 }
 
 type InsertStatement struct {
-	name token
-	cols *[]*identifier
+	table   token
+	cols   *[]*identifier
 	values *[]*expression
 }
 
@@ -53,10 +53,10 @@ const (
 )
 
 type Statement struct {
-	SelectStatement *SelectStatement
+	SelectStatement      *SelectStatement
 	CreateTableStatement *CreateTableStatement
-	InsertStatement *InsertStatement
-	kind astKind
+	InsertStatement      *InsertStatement
+	kind                 astKind
 }
 
 type Ast struct {

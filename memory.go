@@ -1,8 +1,8 @@
 package gosql
 
 import (
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"strconv"
 )
@@ -24,9 +24,9 @@ func (mc MemoryCell) AsText() string {
 }
 
 type table struct {
-	columns []string
+	columns     []string
 	columnTypes []ColumnType
-	rows [][]MemoryCell
+	rows        [][]MemoryCell
 }
 
 type MemoryBackend struct {
@@ -68,7 +68,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}
 
 	results := [][]Cell{}
-	columns := []struct{
+	columns := []struct {
 		Type ColumnType
 		Name string
 	}{}
@@ -96,7 +96,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 					found := false
 					for i, tableCol := range table.columns {
 						if tableCol == lit.value {
-							columns = append(columns, struct{
+							columns = append(columns, struct {
 								Type ColumnType
 								Name string
 							}{
@@ -123,7 +123,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 						columnType = TextType
 					}
 
-					columns = append(columns, struct{
+					columns = append(columns, struct {
 						Type ColumnType
 						Name string
 					}{
@@ -153,15 +153,15 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 
 	return &Results{
 		Columns: columns,
-		Rows: results,
+		Rows:    results,
 	}, nil
 }
 
-func (mb *MemoryBackend) Insert(inst *InsertStatement) (error) {
+func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 	return nil
 }
 
-func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) (error) {
+func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 	return nil
 }
 

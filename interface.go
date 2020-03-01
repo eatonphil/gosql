@@ -1,6 +1,7 @@
 package gosql
 
 type ColumnType uint
+
 const (
 	TextType ColumnType = iota
 	IntType
@@ -12,7 +13,7 @@ type Cell interface {
 }
 
 type Results struct {
-	Columns []struct{
+	Columns []struct {
 		Type ColumnType
 		Name string
 	}

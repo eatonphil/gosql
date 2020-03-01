@@ -17,21 +17,28 @@ const (
 	selectKeyword keyword = "select"
 	fromKeyword   keyword = "from"
 	asKeyword     keyword = "as"
+	tableKeyword  keyword = "table"
+	createKeyword keyword = "create"
+	insertKeyword keyword = "insert"
+	intoKeyword   keyword = "into"
+	valuesKeyword keyword = "values"
 )
 
-type operator string
+type symbol string
 
 const (
-	semicolonOperator operator = ";"
-	asteriskOperator  operator = "*"
-	commaOperator     operator = ","
+	semicolonSymbol  symbol = ";"
+	asteriskSymbol   symbol = "*"
+	commaSymbol      symbol = ","
+	leftparenSymbol  symbol = "("
+	rightparenSymbol symbol = ")"
 )
 
 type tokenKind uint
 
 const (
 	keywordKind tokenKind = iota
-	operatorKind
+	symbolKind
 	identifierKind
 	stringKind
 	numericKind
@@ -47,28 +54,42 @@ func (t *token) equals(other *token) bool {
 	return t.value == other.value && t.kind == other.kind
 }
 
-func (t *token) finalizeOperator() bool {
+func (t *token) finalizeSymbol() bool {
 	switch t.value {
 	case "*":
 		break
 	case ";":
 		break
+	case "(":
+		break
+	case ")":
+		break
 	default:
 		return false
 	}
 
-	t.kind = operatorKind
+	t.kind = symbolKind
 	return true
 }
 
 func (t *token) finalizeKeyword() bool {
 	switch strings.ToLower(t.value) {
 	case "select":
-		t.value = string(selectKeyword)
+		break
 	case "from":
-		t.value = string(fromKeyword)
+		break
 	case "as":
-		t.value = string(asKeyword)
+		break
+	case "table":
+		break
+	case "create":
+		break
+	case "insert":
+		break
+	case "into":
+		break
+	case "values":
+		break
 	default:
 		return false
 	}
@@ -154,7 +175,7 @@ func (t *token) finalizeIdentifier() bool {
 }
 
 func (t *token) finalize() bool {
-	if t.finalizeOperator() {
+	if t.finalizeSymbol() {
 		return true
 	}
 
@@ -215,7 +236,7 @@ func lex(source io.Reader) ([]*token, error) {
 				tokens = append(tokens, &token{
 					loc:   location{col: col, line: line},
 					value: string(c),
-					kind:  operatorKind,
+					kind:  symbolKind,
 				})
 			}
 
