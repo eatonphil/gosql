@@ -57,7 +57,7 @@ func parseToken(tokens []*token, initialCursor uint, kind tokenKind) (*token, ui
 func parseExpression(tokens []*token, initialCursor uint, _ token) (*expression, uint, bool) {
 	cursor := initialCursor
 
-	kinds := []tokenKind{identifierKind, numericKind}
+	kinds := []tokenKind{identifierKind, numericKind, stringKind}
 	for _, kind := range kinds {
 		t, newCursor, ok := parseToken(tokens, cursor, kind)
 		if ok {
@@ -299,7 +299,7 @@ func parseColumnDefinitions(tokens []*token, initialCursor uint, delimiter token
 		cursor = newCursor
 
 		cds = append(cds, &columnDefinition{
-			name: *id,
+			name:     *id,
 			datatype: *ty,
 		})
 	}

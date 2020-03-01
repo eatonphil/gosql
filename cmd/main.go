@@ -35,10 +35,15 @@ func main() {
 	for _, col := range results.Columns {
 		fmt.Printf("| %s ", col.Name)
 	}
+	fmt.Println("|")
+
+	for i := 0; i < 20; i++ {
+		fmt.Printf("=")
+	}
 	fmt.Println()
 
 	for _, result := range results.Rows {
-		fmt.Printf("| ")
+		fmt.Printf("|")
 
 		for i, cell := range result {
 			typ := results.Columns[i].Type

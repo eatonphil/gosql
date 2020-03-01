@@ -39,7 +39,7 @@ type CreateTableStatement struct {
 }
 
 type InsertStatement struct {
-	table   token
+	table  token
 	cols   *[]*identifier
 	values *[]*expression
 }

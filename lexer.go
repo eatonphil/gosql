@@ -22,8 +22,8 @@ const (
 	insertKeyword keyword = "insert"
 	intoKeyword   keyword = "into"
 	valuesKeyword keyword = "values"
-	intKeyword keyword = "int"
-	textKeyword keyword = "text"
+	intKeyword    keyword = "int"
+	textKeyword   keyword = "text"
 )
 
 type symbol string
@@ -181,6 +181,20 @@ func (t *token) finalizeIdentifier() bool {
 	return true
 }
 
+func (t *token) finalizeString() bool {
+	if len(t.value) == 0 {
+		return false
+	}
+
+	if t.value[0] == '\'' && t.value[len(t.value)-1] == '\'' {
+		t.kind = stringKind
+		t.value = t.value[1 : len(t.value)-1]
+		return true
+	}
+
+	return false
+}
+
 func (t *token) finalize() bool {
 	if t.finalizeSymbol() {
 		return true
@@ -191,6 +205,10 @@ func (t *token) finalize() bool {
 	}
 
 	if t.finalizeNumeric() {
+		return true
+	}
+
+	if t.finalizeString() {
 		return true
 	}
 
