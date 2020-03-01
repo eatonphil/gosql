@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"bufio"
+	"bytes"
+	"fmt"
 	"os"
 	"strings"
-	"fmt"
 
 	"github.com/eatonphil/gosql"
 )

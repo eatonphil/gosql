@@ -18,12 +18,12 @@ ok
 ====================
 | 1 |  Phil |
 ok
-# INSERT INTO users VALUES (3, 'Kate');
+# INSERT INTO users VALUES (2, 'Kate');
 ok
 # SELECT name, id FROM users;
-| name | id | name | id |
+| name | id |
 ====================
 | Phil |  1 |
-| Kate |  3 |
+| Kate |  2 |
 ok
 ```

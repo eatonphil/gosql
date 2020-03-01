@@ -89,8 +89,9 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		}
 	}
 
-	for _, row := range table.rows {
+	for i, row := range table.rows {
 		result := []Cell{}
+		isFirstRow := i == 0
 
 		for _, col := range *slct.item {
 			if col.asterisk {
@@ -111,13 +112,15 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 				found := false
 				for i, tableCol := range table.columns {
 					if tableCol == lit.value {
-						columns = append(columns, struct {
-							Type ColumnType
-							Name string
-						}{
-							Type: table.columnTypes[i],
-							Name: lit.value,
-						})
+						if isFirstRow {
+							columns = append(columns, struct {
+								Type ColumnType
+								Name string
+							}{
+								Type: table.columnTypes[i],
+								Name: lit.value,
+							})
+						}
 
 						result = append(result, row[i])
 						found = true
@@ -138,13 +141,15 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 					columnType = TextType
 				}
 
-				columns = append(columns, struct {
-					Type ColumnType
-					Name string
-				}{
-					Type: columnType,
-					Name: col.exp.literal.value,
-				})
+				if isFirstRow {
+					columns = append(columns, struct {
+						Type ColumnType
+						Name string
+					}{
+						Type: columnType,
+						Name: col.exp.literal.value,
+					})
+				}
 				result = append(result, mb.tokenToCell(lit))
 				continue
 			}
@@ -194,7 +199,7 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 	t := table{}
 	mb.tables[crt.name.value] = &t
 	if crt.cols == nil {
-		
+
 		return nil
 	}
 
