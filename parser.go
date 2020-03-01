@@ -193,25 +193,28 @@ func parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) 
 	return &slct, cursor, true
 }
 
-func parse(source io.Reader) (*ast, error) {
+func Parse(source io.Reader) (*Ast, error) {
 	tokens, err := lex(source)
 	if err != nil {
 		return nil, err
 	}
 
-	a := ast{}
+	a := Ast{}
 	cursor := uint(0)
 	for cursor < uint(len(tokens)) {
+		stmt := &Statement{}
 		slct, newCursor, ok := parseSelectStatement(tokens, cursor, semicolonToken)
 		if ok {
-			a.kind = selectKind
-			a.slct = slct
+			stmt.kind = selectKind
+			stmt.SelectStatement = slct
 			cursor = newCursor
 		}
 
 		if !ok {
 			return nil, errors.New("Failed to parse")
 		}
+
+		a.Statements = append(a.Statements, stmt)
 
 		if !expectToken(tokens, cursor, semicolonToken) {
 			helpMessage(tokens, cursor, "Expected semi-colon delimiter between statements")

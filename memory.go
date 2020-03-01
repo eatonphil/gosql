@@ -52,7 +52,7 @@ func (mb *MemoryBackend) tokenToCell(t *token) MemoryCell {
 	return nil
 }
 
-func (mb *MemoryBackend) Select(slct *SelectStatement) ([][]MemoryCell, error) {
+func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	table := table{}
 
 	if slct.from != nil && slct.from.table != nil {
@@ -63,17 +63,20 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) ([][]MemoryCell, error) {
 		}
 	}
 
-	results := [][]MemoryCell{}
-
 	if slct.item == nil || len(*slct.item) == 0 {
-		return results, nil
+		return &Results{}, nil
 	}
 
+	results := [][]Cell{}
+	columns := []struct{
+		Type ColumnType
+		Name string
+	}{}
 	if len(table.rows) > 0 {
 		for _, row := range table.rows {
-			result := []MemoryCell{}
+			result := []Cell{}
 
-			resultRow := []MemoryCell{}
+			resultRow := []Cell{}
 			for _, col := range *slct.item {
 				if col.asterisk {
 					// TODO: handle asterisk
@@ -93,6 +96,14 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) ([][]MemoryCell, error) {
 					found := false
 					for i, tableCol := range table.columns {
 						if tableCol == lit.value {
+							columns = append(columns, struct{
+								Type ColumnType
+								Name string
+							}{
+								Type: table.columnTypes[i],
+								Name: lit.value,
+							})
+
 							resultRow = append(resultRow, row[i])
 							found = true
 							break
@@ -107,6 +118,18 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) ([][]MemoryCell, error) {
 				}
 
 				if lit.kind == numericKind || lit.kind == stringKind {
+					columnType := IntType
+					if lit.kind == stringKind {
+						columnType = TextType
+					}
+
+					columns = append(columns, struct{
+						Type ColumnType
+						Name string
+					}{
+						Type: columnType,
+						Name: col.exp.literal.value,
+					})
 					resultRow = append(resultRow, mb.tokenToCell(lit))
 					continue
 				}
@@ -128,15 +151,18 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) ([][]MemoryCell, error) {
 		}
 	}
 
-	return results, nil
+	return &Results{
+		Columns: columns,
+		Rows: results,
+	}, nil
 }
 
-func (mb *MemoryBackend) Insert(inst *InsertStatement) {
-	
+func (mb *MemoryBackend) Insert(inst *InsertStatement) (error) {
+	return nil
 }
 
-func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) {
-	
+func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) (error) {
+	return nil
 }
 
 func NewMemoryBackend() *MemoryBackend {

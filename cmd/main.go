@@ -1,11 +1,18 @@
 package main
 
-import "github.com/eatonphil/gosql"
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/eatonphil/gosql"
+)
 
 func main() {
 	mb := gosql.NewMemoryBackend()
 
-	ast, err := gosql.Parse("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
+	source := bytes.NewBufferString("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
+
+	ast, err := gosql.Parse(source)
 	if err != nil {
 		panic(err)
 	}
@@ -20,12 +27,12 @@ func main() {
 		panic(err)
 	}
 
-	results, err = mb.Select(ast.Statements[2].SelectStatement)
+	results, err := mb.Select(ast.Statements[2].SelectStatement)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, col := range results.columns {
+	for _, col := range results.Columns {
 		fmt.Printf("| %s ", col.Name)
 	}
 	fmt.Println()
@@ -37,9 +44,9 @@ func main() {
 			typ := results.Columns[i].Type
 			s := ""
 			switch typ {
-			case gosql.Int:
-				s = fmt.Printf("%d", cell.AsInt())
-			case gosql.Text:
+			case gosql.IntType:
+				s = fmt.Sprintf("%d", cell.AsInt())
+			case gosql.TextType:
 				s = cell.AsText()
 			}
 

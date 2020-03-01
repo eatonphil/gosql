@@ -52,9 +52,13 @@ const (
 	insertKind
 )
 
-type ast struct {
-	slct *SelectStatement
-	crtTbl *CreateTableStatement
-	inst *InsertStatement
+type Statement struct {
+	SelectStatement *SelectStatement
+	CreateTableStatement *CreateTableStatement
+	InsertStatement *InsertStatement
 	kind astKind
+}
+
+type Ast struct {
+	Statements []*Statement
 }
