@@ -22,6 +22,8 @@ const (
 	insertKeyword keyword = "insert"
 	intoKeyword   keyword = "into"
 	valuesKeyword keyword = "values"
+	intKeyword keyword = "int"
+	textKeyword keyword = "text"
 )
 
 type symbol string
@@ -90,10 +92,15 @@ func (t *token) finalizeKeyword() bool {
 		break
 	case "values":
 		break
+	case "int":
+		break
+	case "text":
+		break
 	default:
 		return false
 	}
 
+	t.value = strings.ToLower(t.value)
 	t.kind = keywordKind
 	return true
 }
@@ -222,6 +229,10 @@ func lex(source io.Reader) ([]*token, error) {
 			fallthrough
 		case ',':
 			fallthrough
+		case '(':
+			fallthrough
+		case ')':
+			fallthrough
 		case ';':
 			if !current.finalize() {
 				return nil, fmt.Errorf("Unexpected token '%s' at %d:%d", current.value, current.loc.line, current.loc.col)
@@ -232,7 +243,7 @@ func lex(source io.Reader) ([]*token, error) {
 				tokens = append(tokens, &copy)
 			}
 
-			if c == ';' || c == ',' {
+			if c == ';' || c == ',' || c == '(' || c == ')' {
 				tokens = append(tokens, &token{
 					loc:   location{col: col, line: line},
 					value: string(c),

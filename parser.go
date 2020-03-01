@@ -291,7 +291,7 @@ func parseColumnDefinitions(tokens []*token, initialCursor uint, delimiter token
 		}
 		cursor = newCursor
 
-		ty, newCursor, ok := parseToken(tokens, cursor, identifierKind)
+		ty, newCursor, ok := parseToken(tokens, cursor, keywordKind)
 		if !ok {
 			helpMessage(tokens, cursor, "Expected column type")
 			return nil, initialCursor, false

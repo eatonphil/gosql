@@ -100,7 +100,7 @@ func TestLex(t *testing.T) {
 				{
 					loc:   location{col: 8, line: 0},
 					value: ";",
-					kind:  operatorKind,
+					kind:  symbolKind,
 				},
 			},
 			err: nil,
@@ -131,7 +131,7 @@ func TestLex(t *testing.T) {
 				{
 					loc:   location{col: 20, line: 0},
 					value: ";",
-					kind:  operatorKind,
+					kind:  symbolKind,
 				},
 			},
 			err: nil,
