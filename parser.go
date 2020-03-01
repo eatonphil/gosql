@@ -358,7 +358,7 @@ func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Stat
 	slct, newCursor, ok := parseSelectStatement(tokens, cursor, semicolonToken)
 	if ok {
 		return &Statement{
-			kind:            selectKind,
+			Kind:            SelectKind,
 			SelectStatement: slct,
 		}, newCursor, true
 	}
@@ -366,7 +366,7 @@ func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Stat
 	inst, newCursor, ok := parseInsertStatement(tokens, cursor, semicolonToken)
 	if ok {
 		return &Statement{
-			kind:            insertKind,
+			Kind:            InsertKind,
 			InsertStatement: inst,
 		}, newCursor, true
 	}
@@ -374,7 +374,7 @@ func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Stat
 	crtTbl, newCursor, ok := parseCreateTableStatement(tokens, cursor, semicolonToken)
 	if ok {
 		return &Statement{
-			kind:                 createTableKind,
+			Kind:                 CreateTableKind,
 			CreateTableStatement: crtTbl,
 		}, newCursor, true
 	}
@@ -399,7 +399,13 @@ func Parse(source io.Reader) (*Ast, error) {
 
 		a.Statements = append(a.Statements, stmt)
 
-		if !expectToken(tokens, cursor, tokenFromSymbol(semicolonSymbol)) {
+		atLeastOneSemicolon := false
+		for expectToken(tokens, cursor, tokenFromSymbol(semicolonSymbol)) {
+			cursor++
+			atLeastOneSemicolon = true
+		}
+
+		if !atLeastOneSemicolon {
 			helpMessage(tokens, cursor, "Expected semi-colon delimiter between statements")
 			return nil, errors.New("Missing semi-colon between statements")
 		}

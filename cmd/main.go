@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"bufio"
+	"os"
+	"strings"
 	"fmt"
 
 	"github.com/eatonphil/gosql"
@@ -10,54 +13,72 @@ import (
 func main() {
 	mb := gosql.NewMemoryBackend()
 
-	source := bytes.NewBufferString("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Welcome to gosql.")
+	for {
+		fmt.Print("# ")
+		text, err := reader.ReadString('\n')
+		text = strings.Replace(text, "\n", "", -1)
 
-	ast, err := gosql.Parse(source)
-	if err != nil {
-		panic(err)
-	}
+		source := bytes.NewBufferString(text)
 
-	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
-	if err != nil {
-		panic(err)
-	}
-
-	err = mb.Insert(ast.Statements[1].InsertStatement)
-	if err != nil {
-		panic(err)
-	}
-
-	results, err := mb.Select(ast.Statements[2].SelectStatement)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, col := range results.Columns {
-		fmt.Printf("| %s ", col.Name)
-	}
-	fmt.Println("|")
-
-	for i := 0; i < 20; i++ {
-		fmt.Printf("=")
-	}
-	fmt.Println()
-
-	for _, result := range results.Rows {
-		fmt.Printf("|")
-
-		for i, cell := range result {
-			typ := results.Columns[i].Type
-			s := ""
-			switch typ {
-			case gosql.IntType:
-				s = fmt.Sprintf("%d", cell.AsInt())
-			case gosql.TextType:
-				s = cell.AsText()
-			}
-
-			fmt.Printf(" %s | ", s)
+		ast, err := gosql.Parse(source)
+		if err != nil {
+			panic(err)
 		}
 
-		fmt.Println()
+		for _, stmt := range ast.Statements {
+			switch stmt.Kind {
+			case gosql.CreateTableKind:
+				err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println("ok")
+			case gosql.InsertKind:
+				err = mb.Insert(stmt.InsertStatement)
+				if err != nil {
+					panic(err)
+				}
+
+				fmt.Println("ok")
+			case gosql.SelectKind:
+				results, err := mb.Select(stmt.SelectStatement)
+				if err != nil {
+					panic(err)
+				}
+
+				for _, col := range results.Columns {
+					fmt.Printf("| %s ", col.Name)
+				}
+				fmt.Println("|")
+
+				for i := 0; i < 20; i++ {
+					fmt.Printf("=")
+				}
+				fmt.Println()
+
+				for _, result := range results.Rows {
+					fmt.Printf("|")
+
+					for i, cell := range result {
+						typ := results.Columns[i].Type
+						s := ""
+						switch typ {
+						case gosql.IntType:
+							s = fmt.Sprintf("%d", cell.AsInt())
+						case gosql.TextType:
+							s = cell.AsText()
+						}
+
+						fmt.Printf(" %s | ", s)
+					}
+
+					fmt.Println()
+				}
+
+				fmt.Println("ok")
+			}
+		}
 	}
 }

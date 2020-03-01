@@ -44,19 +44,19 @@ type InsertStatement struct {
 	values *[]*expression
 }
 
-type astKind uint
+type AstKind uint
 
 const (
-	selectKind astKind = iota
-	createTableKind
-	insertKind
+	SelectKind AstKind = iota
+	CreateTableKind
+	InsertKind
 )
 
 type Statement struct {
 	SelectStatement      *SelectStatement
 	CreateTableStatement *CreateTableStatement
 	InsertStatement      *InsertStatement
-	kind                 astKind
+	Kind                 AstKind
 }
 
 type Ast struct {

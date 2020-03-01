@@ -17,7 +17,7 @@ func TestParse(t *testing.T) {
 			ast: &Ast{
 				Statements: []*Statement{
 					{
-						kind: insertKind,
+						Kind: InsertKind,
 						InsertStatement: &InsertStatement{
 							table: token{
 								loc:   location{col: 11, line: 0},
@@ -52,7 +52,7 @@ func TestParse(t *testing.T) {
 			ast: &Ast{
 				Statements: []*Statement{
 					{
-						kind: createTableKind,
+						Kind: CreateTableKind,
 						CreateTableStatement: &CreateTableStatement{
 							name: token{
 								loc:   location{col: 12, line: 0},
@@ -95,7 +95,7 @@ func TestParse(t *testing.T) {
 			ast: &Ast{
 				Statements: []*Statement{
 					{
-						kind: selectKind,
+						Kind: SelectKind,
 						SelectStatement: &SelectStatement{
 							item: &[]*selectItem{
 								{
@@ -122,7 +122,7 @@ func TestParse(t *testing.T) {
 			ast: &Ast{
 				Statements: []*Statement{
 					{
-						kind: selectKind,
+						Kind: SelectKind,
 						SelectStatement: &SelectStatement{
 							item: &[]*selectItem{
 								{
