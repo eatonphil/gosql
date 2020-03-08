@@ -220,6 +220,7 @@ func parseInsertStatement(tokens []*token, initialCursor uint, delimiter token) 
 	cursor++
 
 	if !expectToken(tokens, cursor, tokenFromKeyword(intoKeyword)) {
+		helpMessage(tokens, cursor, "Expected into")
 		return nil, initialCursor, false
 	}
 	cursor++
@@ -393,6 +394,7 @@ func Parse(source io.Reader) (*Ast, error) {
 	for cursor < uint(len(tokens)) {
 		stmt, newCursor, ok := parseStatement(tokens, cursor, tokenFromSymbol(semicolonSymbol))
 		if !ok {
+			helpMessage(tokens, cursor, "Expected statement")
 			return nil, errors.New("Failed to parse, expected statement")
 		}
 		cursor = newCursor
@@ -409,8 +411,6 @@ func Parse(source io.Reader) (*Ast, error) {
 			helpMessage(tokens, cursor, "Expected semi-colon delimiter between statements")
 			return nil, errors.New("Missing semi-colon between statements")
 		}
-
-		cursor++
 	}
 
 	return &a, nil
