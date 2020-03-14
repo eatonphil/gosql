@@ -1,7 +1,6 @@
 package gosql
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,14 +19,14 @@ func TestParse(t *testing.T) {
 						Kind: InsertKind,
 						InsertStatement: &InsertStatement{
 							table: token{
-								loc:   location{col: 11, line: 0},
+								loc:   location{col: 12, line: 0},
 								kind:  identifierKind,
 								value: "users",
 							},
 							values: &[]*expression{
 								{
 									literal: &token{
-										loc:   location{col: 25, line: 0},
+										loc:   location{col: 26, line: 0},
 										kind:  numericKind,
 										value: "105",
 									},
@@ -35,7 +34,7 @@ func TestParse(t *testing.T) {
 								},
 								{
 									literal: &token{
-										loc:   location{col: 30, line: 0},
+										loc:   location{col: 32, line: 0},
 										kind:  numericKind,
 										value: "233",
 									},
@@ -55,31 +54,31 @@ func TestParse(t *testing.T) {
 						Kind: CreateTableKind,
 						CreateTableStatement: &CreateTableStatement{
 							name: token{
-								loc:   location{col: 12, line: 0},
+								loc:   location{col: 13, line: 0},
 								kind:  identifierKind,
 								value: "users",
 							},
 							cols: &[]*columnDefinition{
 								{
 									name: token{
-										loc:   location{col: 19, line: 0},
+										loc:   location{col: 20, line: 0},
 										kind:  identifierKind,
 										value: "id",
 									},
 									datatype: token{
-										loc:   location{col: 22, line: 0},
+										loc:   location{col: 23, line: 0},
 										kind:  keywordKind,
 										value: "int",
 									},
 								},
 								{
 									name: token{
-										loc:   location{col: 27, line: 0},
+										loc:   location{col: 28, line: 0},
 										kind:  identifierKind,
 										value: "name",
 									},
 									datatype: token{
-										loc:   location{col: 32, line: 0},
+										loc:   location{col: 33, line: 0},
 										kind:  keywordKind,
 										value: "text",
 									},
@@ -105,7 +104,7 @@ func TestParse(t *testing.T) {
 									exp: &expression{
 										kind: literalKind,
 										literal: &token{
-											loc:   location{col: 9, line: 0},
+											loc:   location{col: 10, line: 0},
 											kind:  identifierKind,
 											value: "exclusive",
 										},
@@ -129,7 +128,7 @@ func TestParse(t *testing.T) {
 									exp: &expression{
 										kind: literalKind,
 										literal: &token{
-											loc:   location{col: 6, line: 0},
+											loc:   location{col: 7, line: 0},
 											kind:  identifierKind,
 											value: "id",
 										},
@@ -139,13 +138,13 @@ func TestParse(t *testing.T) {
 									exp: &expression{
 										kind: literalKind,
 										literal: &token{
-											loc:   location{col: 10, line: 0},
+											loc:   location{col: 11, line: 0},
 											kind:  identifierKind,
 											value: "name",
 										},
 									},
 									as: &token{
-										loc:   location{col: 18, line: 0},
+										loc:   location{col: 19, line: 0},
 										kind:  identifierKind,
 										value: "fullname",
 									},
@@ -153,7 +152,7 @@ func TestParse(t *testing.T) {
 							},
 							from: &fromItem{
 								table: &token{
-									loc:   location{col: 32, line: 0},
+									loc:   location{col: 33, line: 0},
 									kind:  identifierKind,
 									value: "users",
 								},
@@ -166,7 +165,7 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		ast, err := Parse(bytes.NewBufferString(test.source))
+		ast, err := Parse(test.source)
 		assert.Nil(t, err, test.source)
 		assert.Equal(t, test.ast, ast, test.source)
 	}

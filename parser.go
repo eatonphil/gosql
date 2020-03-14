@@ -3,7 +3,6 @@ package gosql
 import (
 	"errors"
 	"fmt"
-	"io"
 )
 
 func tokenFromKeyword(k keyword) token {
@@ -383,10 +382,15 @@ func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Stat
 	return nil, initialCursor, false
 }
 
-func Parse(source io.Reader) (*Ast, error) {
+func Parse(source string) (*Ast, error) {
 	tokens, err := lex(source)
 	if err != nil {
 		return nil, err
+	}
+
+	semicolonToken := tokenFromSymbol(semicolonSymbol)
+	if len(tokens) > 0 && !tokens[len(tokens)-1].equals(&semicolonToken) {
+		tokens = append(tokens, &semicolonToken)
 	}
 
 	a := Ast{}
