@@ -388,6 +388,11 @@ func Parse(source string) (*Ast, error) {
 		return nil, err
 	}
 
+	semicolonToken := tokenFromSymbol(semicolonSymbol)
+	if len(tokens) > 0 && !tokens[len(tokens)-1].equals(&semicolonToken) {
+		tokens = append(tokens, &semicolonToken)
+	}
+
 	a := Ast{}
 	cursor := uint(0)
 	for cursor < uint(len(tokens)) {
@@ -406,7 +411,7 @@ func Parse(source string) (*Ast, error) {
 			atLeastOneSemicolon = true
 		}
 
-		if !atLeastOneSemicolon && cursor < uint(len(tokens)) {
+		if !atLeastOneSemicolon {
 			helpMessage(tokens, cursor, "Expected semi-colon delimiter between statements")
 			return nil, errors.New("Missing semi-colon between statements")
 		}

@@ -53,7 +53,7 @@ type token struct {
 
 type cursor struct {
 	pointer uint
-	loc location
+	loc     location
 }
 
 func (t *token) equals(other *token) bool {
@@ -63,18 +63,23 @@ func (t *token) equals(other *token) bool {
 type lexer func(string, cursor) (*token, cursor, bool)
 
 func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
+	c := source[ic.pointer]
 	cur := ic
-	c := source[cur.pointer]
+	cur.loc.col++
+	cur.pointer++
 
 	switch c {
+	// Syntax that should be thrown away
 	case '\n':
 		cur.loc.line++
 		cur.loc.col = 0
-		return nil, cur, true
+		fallthrough
+	case '\t':
+		fallthrough
 	case ' ':
-		cur.loc.col++
-		cur.pointer++
 		return nil, cur, true
+
+	// Syntax that should be kept
 	case ',':
 		fallthrough
 	case '(':
@@ -82,24 +87,24 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	case ')':
 		fallthrough
 	case ';':
-		
-	case '*':
 		fallthrough
+	case '*':
+		break
+
+	// Unknown character
 	default:
 		return nil, ic, false
 	}
 
-	cur.pointer++
 	return &token{
 		value: string(c),
-		loc: ic.loc,
-		kind: symbolKind,
+		loc:   ic.loc,
+		kind:  symbolKind,
 	}, cur, true
 }
 
-func lexKeyword(source string, ic cursor) (*token, cursor, bool)  {
+func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	cur := ic
-	// Sorted manually by length
 	keywords := []keyword{
 		selectKeyword,
 		insertKeyword,
@@ -113,30 +118,53 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool)  {
 	}
 
 	var value []byte
-	for ; cur.pointer < uint(len(source)); cur.pointer++ {
+	var skipList []int
+	var match string
+	for {
+		cur.loc.col++
 		value = append(value, source[cur.pointer])
 
-		// Passed than longest keyword
-		if len(value) > len(keywords[0]) {
-			return nil, ic, false
-		}
+	keyword:
+		for i, keyword := range keywords {
+			for _, skip := range skipList {
+				if i == skip {
+					continue keyword
+				}
+			}
 
-		for _, keyword := range keywords {
-			// Keywords are case-insensitive
-			if strings.ToLower(string(value)) == string(keyword) {
-				cur.pointer++
-				return &token{
-					value: string(keyword),
-					kind: keywordKind,
-					loc: ic.loc,	
-				}, cur, true
+			// Deal with cases like INT vs INTO
+			if string(keyword) == strings.ToLower(string(value)) {
+				skipList = append(skipList, i)
+				if len(keyword) > len(match) {
+					match = string(keyword)
+				}
+			}
+
+			sharesPrefix := strings.ToLower(string(value)) == string(keyword)[:cur.pointer-ic.pointer+1]
+			tooLong := len(value) > len(keyword)
+			if tooLong || !sharesPrefix {
+				skipList = append(skipList, i)
 			}
 		}
 
-		cur.loc.col++
+		if len(skipList) == len(keywords) {
+			break
+		}
+
+		cur.pointer++
 	}
 
-	return nil, ic, false
+	if match == "" {
+		return nil, ic, false
+	}
+
+	// This increment will be skipped in the loop because we exit early.
+	cur.pointer++
+	return &token{
+		value: match,
+		kind:  keywordKind,
+		loc:   ic.loc,
+	}, cur, true
 }
 
 func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
@@ -147,6 +175,7 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 
 	for ; cur.pointer < uint(len(source)); cur.pointer++ {
 		c := source[cur.pointer]
+		cur.loc.col++
 
 		isDigit := c >= '0' && c <= '9'
 		isPeriod := c == '.'
@@ -188,20 +217,26 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 			cNext := source[cur.pointer+1]
 			if cNext == '-' || cNext == '+' {
 				cur.pointer++
+				cur.loc.col++
 			}
 
 			continue
 		}
 
 		if !isDigit {
-			return nil, ic, false
+			break
 		}
+	}
+
+	// No characters accumulated
+	if cur.pointer == ic.pointer {
+		return nil, ic, false
 	}
 
 	return &token{
 		value: source[ic.pointer:cur.pointer],
-		loc: ic.loc,
-		kind: numericKind,
+		loc:   ic.loc,
+		kind:  numericKind,
 	}, cur, true
 }
 
@@ -225,11 +260,11 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 
 		if c == delimiter {
 			// SQL escapes are via double characters, not backslash.
-			if cur.pointer + 1 >= uint(len(source)) || source[cur.pointer + 1] != delimiter {
+			if cur.pointer+1 >= uint(len(source)) || source[cur.pointer+1] != delimiter {
 				return &token{
 					value: string(value),
-					loc: ic.loc,
-					kind: stringKind,
+					loc:   ic.loc,
+					kind:  stringKind,
 				}, cur, true
 			} else {
 				value = append(value, delimiter)
@@ -260,6 +295,7 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 		return nil, ic, false
 	}
 	cur.pointer++
+	cur.loc.col++
 
 	value := []byte{c}
 	for ; cur.pointer < uint(len(source)); cur.pointer++ {
@@ -281,21 +317,12 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 		return nil, ic, false
 	}
 
-	isDelimited := cur.pointer >= uint(len(source))
-	if !isDelimited {
-		_, _, isDelimited = lexSymbol(source, cur)
-	}
-
-	if isDelimited {
-		return &token{
-			// Unquoted dentifiers are case-insensitive
-			value: strings.ToLower(string(value)),
-			loc: ic.loc,
-			kind: identifierKind,
-		}, cur, true
-	}
-	
-	return nil, ic, false
+	return &token{
+		// Unquoted dentifiers are case-insensitive
+		value: strings.ToLower(string(value)),
+		loc:   ic.loc,
+		kind:  identifierKind,
+	}, cur, true
 }
 
 func lexString(source string, ic cursor) (*token, cursor, bool) {
@@ -308,19 +335,25 @@ func lex(source string) ([]*token, error) {
 
 lex:
 	for cur.pointer < uint(len(source)) {
-		lexers :=[]lexer{lexKeyword, lexSymbol, lexString, lexNumeric, lexIdentifier}
-		for _, l := range  lexers {
+		lexers := []lexer{lexKeyword, lexSymbol, lexString, lexNumeric, lexIdentifier}
+		for _, l := range lexers {
 			if token, newCursor, ok := l(source, cur); ok {
 				cur = newCursor
-				// Omit nil tokens for empty syntax
+
+				// Omit nil tokens for valid, but empty syntax like newlines
 				if token != nil {
 					tokens = append(tokens, token)
 				}
+
 				continue lex
 			}
 		}
 
-		return nil, fmt.Errorf("Unable to lex token at %d:%d", cur.loc.line, cur.loc.col)
+		hint := ""
+		if len(tokens) > 0 {
+			hint = " after " + tokens[len(tokens)-1].value
+		}
+		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.loc.line, cur.loc.col)
 	}
 
 	return tokens, nil
