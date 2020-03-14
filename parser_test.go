@@ -54,31 +54,31 @@ func TestParse(t *testing.T) {
 						Kind: CreateTableKind,
 						CreateTableStatement: &CreateTableStatement{
 							name: token{
-								loc:   location{col: 12, line: 0},
+								loc:   location{col: 13, line: 0},
 								kind:  identifierKind,
 								value: "users",
 							},
 							cols: &[]*columnDefinition{
 								{
 									name: token{
-										loc:   location{col: 19, line: 0},
+										loc:   location{col: 20, line: 0},
 										kind:  identifierKind,
 										value: "id",
 									},
 									datatype: token{
-										loc:   location{col: 22, line: 0},
+										loc:   location{col: 23, line: 0},
 										kind:  keywordKind,
 										value: "int",
 									},
 								},
 								{
 									name: token{
-										loc:   location{col: 27, line: 0},
+										loc:   location{col: 28, line: 0},
 										kind:  identifierKind,
 										value: "name",
 									},
 									datatype: token{
-										loc:   location{col: 32, line: 0},
+										loc:   location{col: 33, line: 0},
 										kind:  keywordKind,
 										value: "text",
 									},
@@ -104,7 +104,7 @@ func TestParse(t *testing.T) {
 									exp: &expression{
 										kind: literalKind,
 										literal: &token{
-											loc:   location{col: 9, line: 0},
+											loc:   location{col: 10, line: 0},
 											kind:  identifierKind,
 											value: "exclusive",
 										},

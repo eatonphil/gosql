@@ -257,6 +257,61 @@ func TestLex(t *testing.T) {
 			err: nil,
 		},
 		{
+			input: "CREATE TABLE u (id INT, name TEXT)",
+			tokens: []token{
+				{
+					loc:   location{col: 0, line: 0},
+					value: string(createKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 7, line: 0},
+					value: string(tableKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 13, line: 0},
+					value: "u",
+					kind:  identifierKind,
+				},
+				{
+					loc:   location{col: 15, line: 0},
+					value: "(",
+					kind:  symbolKind,
+				},
+				{
+					loc:   location{col: 16, line: 0},
+					value: "id",
+					kind:  identifierKind,
+				},
+				{
+					loc:   location{col: 19, line: 0},
+					value: "int",
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 22, line: 0},
+					value: ",",
+					kind:  symbolKind,
+				},
+				{
+					loc:   location{col: 24, line: 0},
+					value: "name",
+					kind:  identifierKind,
+				},
+				{
+					loc:   location{col: 29, line: 0},
+					value: "text",
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 33, line: 0},
+					value: ")",
+					kind:  symbolKind,
+				},
+			},
+		},
+		{
 			input: "insert into users values (105, 233)",
 			tokens: []token{
 				{

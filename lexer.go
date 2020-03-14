@@ -110,6 +110,7 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		insertKeyword,
 		valuesKeyword,
 		tableKeyword,
+		createKeyword,
 		fromKeyword,
 		intoKeyword,
 		textKeyword,
@@ -120,9 +121,10 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	var value []byte
 	var skipList []int
 	var match string
+
 	for {
-		cur.loc.col++
 		value = append(value, source[cur.pointer])
+		cur.pointer++
 
 	keyword:
 		for i, keyword := range keywords {
@@ -138,9 +140,11 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 				if len(keyword) > len(match) {
 					match = string(keyword)
 				}
+
+				continue
 			}
 
-			sharesPrefix := strings.ToLower(string(value)) == string(keyword)[:cur.pointer-ic.pointer+1]
+			sharesPrefix := strings.ToLower(string(value)) == string(keyword)[:cur.pointer-ic.pointer]
 			tooLong := len(value) > len(keyword)
 			if tooLong || !sharesPrefix {
 				skipList = append(skipList, i)
@@ -150,16 +154,17 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		if len(skipList) == len(keywords) {
 			break
 		}
-
-		cur.pointer++
 	}
 
 	if match == "" {
 		return nil, ic, false
 	}
 
-	// This increment will be skipped in the loop because we exit early.
-	cur.pointer++
+	// Set pointer and col exactly because of partial matches
+	// while iterating over keywords
+	cur.pointer = ic.pointer + uint(len(match))
+	cur.loc.col = cur.loc.col + uint(len(match))
+
 	return &token{
 		value: match,
 		kind:  keywordKind,
