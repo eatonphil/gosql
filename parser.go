@@ -3,7 +3,6 @@ package gosql
 import (
 	"errors"
 	"fmt"
-	"io"
 )
 
 func tokenFromKeyword(k keyword) token {
@@ -383,7 +382,7 @@ func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Stat
 	return nil, initialCursor, false
 }
 
-func Parse(source io.Reader) (*Ast, error) {
+func Parse(source string) (*Ast, error) {
 	tokens, err := lex(source)
 	if err != nil {
 		return nil, err
@@ -407,7 +406,7 @@ func Parse(source io.Reader) (*Ast, error) {
 			atLeastOneSemicolon = true
 		}
 
-		if !atLeastOneSemicolon {
+		if !atLeastOneSemicolon && cursor < uint(len(tokens)) {
 			helpMessage(tokens, cursor, "Expected semi-colon delimiter between statements")
 			return nil, errors.New("Missing semi-colon between statements")
 		}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -20,9 +19,7 @@ func main() {
 		text, err := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
 
-		source := bytes.NewBufferString(text)
-
-		ast, err := gosql.Parse(source)
+		ast, err := gosql.Parse(text)
 		if err != nil {
 			panic(err)
 		}

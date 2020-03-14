@@ -1,7 +1,6 @@
 package gosql
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -166,7 +165,7 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		ast, err := Parse(bytes.NewBufferString(test.source))
+		ast, err := Parse(test.source)
 		assert.Nil(t, err, test.source)
 		assert.Equal(t, test.ast, ast, test.source)
 	}
