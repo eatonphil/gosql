@@ -137,53 +137,63 @@ func TestToken_lexString(t *testing.T) {
 func TestToken_lexIdentifier(t *testing.T) {
 	tests := []struct {
 		identifier bool
+		input      string
 		value      string
 	}{
 		{
 			identifier: true,
+			input:      "abc",
 			value:      "abc",
 		},
 		{
 			identifier: true,
-			value:      "abc ",
+			input:      "abc ",
+			value:      "abc",
 		},
 		{
 			identifier: true,
-			value:      `" abc "`,
+			input:      `" abc "`,
+			value:      ` abc `,
 		},
 		{
 			identifier: true,
+			input:      "a9$",
 			value:      "a9$",
+		},
+		{
+			identifier: true,
+			input:      "userName",
+			value:      "username",
+		},
+		{
+			identifier: true,
+			input:      `"userName"`,
+			value:      "userName",
 		},
 		// false tests
 		{
 			identifier: false,
-			value:      `"`,
+			input:      `"`,
 		},
 		{
 			identifier: false,
-			value:      "_sadsfa",
+			input:      "_sadsfa",
 		},
 		{
 			identifier: false,
-			value:      "9sadsfa",
+			input:      "9sadsfa",
 		},
 		{
 			identifier: false,
-			value:      " abc",
+			input:      " abc",
 		},
 	}
 
 	for _, test := range tests {
-		tok, _, ok := lexIdentifier(test.value, cursor{})
-		assert.Equal(t, test.identifier, ok, test.value)
+		tok, _, ok := lexIdentifier(test.input, cursor{})
+		assert.Equal(t, test.identifier, ok, test.input)
 		if ok {
-			test.value = strings.TrimSpace(test.value)
-			if test.value[0] == '"' {
-				test.value = test.value[1 : len(test.value)-1]
-			}
-
-			assert.Equal(t, test.value, tok.value, test.value)
+			assert.Equal(t, test.value, tok.value, test.input)
 		}
 	}
 }
