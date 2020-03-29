@@ -21,13 +21,13 @@ func tokenFromSymbol(s symbol) token {
 
 func helpMessage(tokens []*token, cursor uint, msg string) {
 	var c *token
-	if cursor < uint(len(tokens)) {
-		c = tokens[cursor]
+	if cursor + 1 < uint(len(tokens)) {
+		c = tokens[cursor + 1]
 	} else {
-		c = tokens[cursor-1]
+		c = tokens[cursor]
 	}
 
-	fmt.Printf("[%d,%d]: %s, got: %s\n", c.loc.line, c.loc.col, msg, c.value)
+	fmt.Printf("[%d,%d]: %s, near: %s\n", c.loc.line, c.loc.col, msg, c.value)
 }
 
 func parseTokenKind(tokens []*token, initialCursor uint, kind tokenKind) (*token, uint, bool) {
@@ -121,7 +121,17 @@ func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*
 		return nil, initialCursor, false
 	}
 
-	return parseExpression(tokens, cursor, delimiters)
+	b, newCursor, ok := parseExpression(tokens, cursor, delimiters)
+	if !ok {
+		helpMessage(tokens, cursor, "Expected right operand")
+		return nil, initialCursor, false
+	}
+
+	binExp.b = *b
+	return &expression{
+		binary: &binExp,
+		kind: binaryKind,
+	}, newCursor, true
 }
 
 // expression [AS ident] [, ...]
@@ -156,7 +166,8 @@ outer:
 		if ok {
 			si = selectItem{asterisk: true}
 		} else {
-			exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol)})
+			asToken := tokenFromKeyword(asKeyword)
+			exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), asToken, tokenFromSymbol(semicolonSymbol)})
 			if !ok {
 				helpMessage(tokens, cursor, "Expected expression")
 				return nil, initialCursor, false
@@ -165,7 +176,7 @@ outer:
 			cursor = newCursor
 			si.exp = exp
 
-			_, cursor, ok = parseToken(tokens, cursor, tokenFromKeyword(asKeyword))
+			_, cursor, ok = parseToken(tokens, cursor, asToken)
 			if ok {
 				id, newCursor, ok := parseTokenKind(tokens, cursor, identifierKind)
 				if !ok {
@@ -258,14 +269,14 @@ func parseExpressions(tokens []*token, initialCursor uint, delimiter token) (*[]
 
 		if len(exps) > 0 {
 			var ok bool
-			_, cursor, ok := parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			_, cursor, ok = parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
 			if !ok {
 				helpMessage(tokens, cursor, "Expected comma")
 				return nil, initialCursor, false
 			}
 		}
 
-		exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol)})
+		exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), tokenFromSymbol(rightParenSymbol)})
 		if !ok {
 			helpMessage(tokens, cursor, "Expected expression")
 			return nil, initialCursor, false
@@ -314,6 +325,7 @@ func parseInsertStatement(tokens []*token, initialCursor uint, delimiter token) 
 
 	values, newCursor, ok := parseExpressions(tokens, cursor, tokenFromSymbol(rightParenSymbol))
 	if !ok {
+		helpMessage(tokens, cursor, "Expected expressions")
 		return nil, initialCursor, false
 	}
 	cursor = newCursor

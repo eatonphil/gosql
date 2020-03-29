@@ -2,6 +2,7 @@ package gosql
 
 import (
 	"testing"
+	"fmt"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,18 +45,19 @@ func TestParse(t *testing.T) {
 										},
 										b: expression{
 											literal: &token{
-												loc:   location{col: 38, line: 0},
+												loc:   location{col: 39, line: 0},
 												kind:  numericKind,
 												value: "42",
 											},
 											kind: literalKind,
 										},
 										op: token{
-											loc: location{col: 36, line: 0},
+											loc: location{col: 37, line: 0},
 											kind: symbolKind,
 											value: string(plusSymbol),
 										},
 									},
+									kind: binaryKind,
 								},
 							},
 						},
@@ -182,6 +184,7 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		fmt.Println("Testing: ", test.source)
 		ast, err := Parse(test.source)
 		assert.Nil(t, err, test.source)
 		assert.Equal(t, test.ast, ast, test.source)
