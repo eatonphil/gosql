@@ -134,6 +134,31 @@ func TestToken_lexString(t *testing.T) {
 	}
 }
 
+func TestToken_lexSymbol(t *testing.T) {
+	tests := []struct {
+		symbol bool
+		value  string
+	}{
+		{
+			symbol: true,
+			value:  "= ",
+		},
+		{
+			symbol: true,
+			value:  "||",
+		},
+	}
+
+	for _, test := range tests {
+		tok, _, ok := lexSymbol(test.value, cursor{})
+		assert.Equal(t, test.symbol, ok, test.value)
+		if ok {
+			test.value = strings.TrimSpace(test.value)
+			assert.Equal(t, test.value, tok.value, test.value)
+		}
+	}
+}
+
 func TestToken_lexIdentifier(t *testing.T) {
 	tests := []struct {
 		identifier bool

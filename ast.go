@@ -4,10 +4,18 @@ type expressionKind uint
 
 const (
 	literalKind expressionKind = iota
+	binaryKind
 )
+
+type binaryExpression struct {
+	a  expression
+	b  expression
+	op token
+}
 
 type expression struct {
 	literal *token
+	binary  *binaryExpression
 	kind    expressionKind
 }
 
@@ -24,8 +32,9 @@ type fromItem struct {
 }
 
 type SelectStatement struct {
-	item *[]*selectItem
-	from *fromItem
+	item  *[]*selectItem
+	from  *fromItem
+	where *expression
 }
 
 type columnDefinition struct {

@@ -12,7 +12,7 @@ func TestParse(t *testing.T) {
 		ast    *Ast
 	}{
 		{
-			source: "INSERT INTO users VALUES (105, 233)",
+			source: "INSERT INTO users VALUES (105, 233 + 42)",
 			ast: &Ast{
 				Statements: []*Statement{
 					{
@@ -33,12 +33,29 @@ func TestParse(t *testing.T) {
 									kind: literalKind,
 								},
 								{
-									literal: &token{
-										loc:   location{col: 32, line: 0},
-										kind:  numericKind,
-										value: "233",
+									binary: &binaryExpression{
+										a: expression{
+											literal: &token{
+												loc:   location{col: 32, line: 0},
+												kind:  numericKind,
+												value: "233",
+											},
+											kind: literalKind,
+										},
+										b: expression{
+											literal: &token{
+												loc:   location{col: 38, line: 0},
+												kind:  numericKind,
+												value: "42",
+											},
+											kind: literalKind,
+										},
+										op: token{
+											loc: location{col: 36, line: 0},
+											kind: symbolKind,
+											value: string(plusSymbol),
+										},
 									},
-									kind: literalKind,
 								},
 							},
 						},
