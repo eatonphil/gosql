@@ -21,8 +21,8 @@ func tokenFromSymbol(s symbol) token {
 
 func helpMessage(tokens []*token, cursor uint, msg string) {
 	var c *token
-	if cursor + 1 < uint(len(tokens)) {
-		c = tokens[cursor + 1]
+	if cursor+1 < uint(len(tokens)) {
+		c = tokens[cursor+1]
 	} else {
 		c = tokens[cursor]
 	}
@@ -130,7 +130,7 @@ func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*
 	binExp.b = *b
 	return &expression{
 		binary: &binExp,
-		kind: binaryKind,
+		kind:   binaryKind,
 	}, newCursor, true
 }
 

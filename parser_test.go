@@ -1,8 +1,8 @@
 package gosql
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -52,8 +52,8 @@ func TestParse(t *testing.T) {
 											kind: literalKind,
 										},
 										op: token{
-											loc: location{col: 37, line: 0},
-											kind: symbolKind,
+											loc:   location{col: 37, line: 0},
+											kind:  symbolKind,
 											value: string(plusSymbol),
 										},
 									},

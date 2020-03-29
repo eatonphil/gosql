@@ -9,5 +9,5 @@ var (
 	ErrInvalidDatatype    = errors.New("Invalid datatype")
 	ErrMissingValues      = errors.New("Missing values")
 	ErrInvalidCell        = errors.New("Cell is invalid")
-	ErrInvalidOperands = errors.New("Operands are invalid")
+	ErrInvalidOperands    = errors.New("Operands are invalid")
 )

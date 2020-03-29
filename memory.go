@@ -69,10 +69,10 @@ func literalToMemoryCell(t *token) MemoryCell {
 }
 
 var (
-	trueToken = tokenFromKeyword(trueKeyword)
+	trueToken  = tokenFromKeyword(trueKeyword)
 	falseToken = tokenFromKeyword(falseKeyword)
 
-	trueMemoryCell = literalToMemoryCell(&trueToken)
+	trueMemoryCell  = literalToMemoryCell(&trueToken)
 	falseMemoryCell = literalToMemoryCell(&falseToken)
 )
 
@@ -81,7 +81,6 @@ type table struct {
 	columnTypes []ColumnType
 	rows        [][]MemoryCell
 }
-
 
 func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (MemoryCell, string, ColumnType, error) {
 	if exp.kind != literalKind {
