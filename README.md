@@ -61,7 +61,7 @@ tests (`make test`). New code should have tests.
 
 ## Blog series
 
-* [https://notes.eatonphil.com/database-basics.html](Writing a SQL database from scratch in Go)
+* [Writing a SQL database from scratch in Go](https://notes.eatonphil.com/database-basics.html)
 
 ## Further reading
 
