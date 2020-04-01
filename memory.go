@@ -13,7 +13,7 @@ func (mc MemoryCell) AsInt() int32 {
 	var i int32
 	err := binary.Read(bytes.NewBuffer(mc), binary.BigEndian, &i)
 	if err != nil {
-		fmt.Println("Corrupted data: %s", err)
+		fmt.Printf("Corrupted data [%s]: %s\n", mc, err)
 		return 0
 	}
 
@@ -43,14 +43,14 @@ func literalToMemoryCell(t *token) MemoryCell {
 		buf := new(bytes.Buffer)
 		i, err := strconv.Atoi(t.value)
 		if err != nil {
-			fmt.Println("Corrupted data: %s", err)
+			fmt.Printf("Corrupted data [%s]: %s\n", t.value, err)
 			return MemoryCell(nil)
 		}
 
 		// TODO: handle bigint
 		err = binary.Write(buf, binary.BigEndian, int32(i))
 		if err != nil {
-			fmt.Println("Corrupted data: %s", err)
+			fmt.Printf("Corrupted data [%s]: %s\n", string(buf.Bytes()), err)
 			return MemoryCell(nil)
 		}
 		return MemoryCell(buf.Bytes())
@@ -164,7 +164,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (MemoryCell, s
 			}
 
 			iValue := int(l.AsInt() + r.AsInt())
-			return literalToMemoryCell(&token{kind: stringKind, value: strconv.Itoa(iValue)}), "?column?", TextType, nil
+			return literalToMemoryCell(&token{kind: numericKind, value: strconv.Itoa(iValue)}), "?column?", IntType, nil
 		default:
 			// TODO
 			break

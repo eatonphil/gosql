@@ -79,16 +79,34 @@ func parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, u
 func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*expression, uint, bool) {
 	cursor := initialCursor
 
-	lit, newCursor, ok := parseLiteralExpression(tokens, cursor)
-	if !ok {
-		return nil, initialCursor, false
+	var exp *expression
+	_, newCursor, ok := parseToken(tokens, cursor, tokenFromSymbol(leftParenSymbol))
+	if ok {
+		cursor = newCursor
+		rightParenToken := tokenFromSymbol(rightParenSymbol)
+
+		exp, cursor, ok = parseExpression(tokens, cursor, append(delimiters, rightParenToken))
+		if !ok {
+			helpMessage(tokens, cursor, "Expected expression after opening paren")
+			return nil, initialCursor, false
+		}
+
+		_, cursor, ok = parseToken(tokens, cursor, rightParenToken)
+		if !ok {
+			helpMessage(tokens, cursor, "Expected closing paren")
+			return nil, initialCursor, false
+		}
+	} else {
+		exp, cursor, ok = parseLiteralExpression(tokens, cursor)
+		if !ok {
+			return nil, initialCursor, false
+		}
 	}
-	cursor = newCursor
 
 	for _, d := range delimiters {
 		_, _, ok = parseToken(tokens, cursor, d)
 		if ok {
-			return lit, cursor, true
+			return exp, cursor, true
 		}
 	}
 
@@ -102,7 +120,7 @@ func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*
 	}
 
 	binExp := binaryExpression{
-		a: *lit,
+		a: *exp,
 	}
 
 	binOpFound := false
