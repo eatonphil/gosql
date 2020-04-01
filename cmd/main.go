@@ -7,13 +7,68 @@ import (
 	"strings"
 
 	"github.com/eatonphil/gosql"
+
+	"github.com/olekukonko/tablewriter"
 )
+
+func doSelect(mb gosql.Backend, slct* gosql.SelectStatement) error {
+	results, err := mb.Select(slct)
+	if err != nil {
+		return err
+	}
+
+	if len(results.Rows) == 0 {
+		fmt.Println("(no results)")
+		return nil
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	header := []string{}
+	for _, col := range results.Columns {
+		header = append(header, col.Name)
+	}
+	table.SetHeader(header)
+	table.SetAutoFormatHeaders(false)
+
+	rows := [][]string{}
+	for _, result := range results.Rows {
+		row := []string{}
+		for i, cell := range result {
+			typ := results.Columns[i].Type
+			s := ""
+			switch typ {
+			case gosql.IntType:
+				s = fmt.Sprintf("%d", cell.AsInt())
+			case gosql.TextType:
+				s = cell.AsText()
+			case gosql.BoolType:
+				s = "true"
+				if !cell.AsBool() {
+					s = "false"
+				}
+			}
+
+			row = append(row, s)
+		}
+
+		rows = append(rows, row)
+	}
+
+	table.SetBorder(false)
+	table.AppendBulk(rows)
+	table.Render()
+
+	fmt.Printf("(%d results)\n", len(rows))
+
+	return nil
+}
 
 func main() {
 	mb := gosql.NewMemoryBackend()
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to gosql.")
+repl:
 	for {
 		fmt.Print("# ")
 		text, err := reader.ReadString('\n')
@@ -21,7 +76,8 @@ func main() {
 
 		ast, err := gosql.Parse(text)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error while parsing:", err)
+			continue repl
 		}
 
 		for _, stmt := range ast.Statements {
@@ -29,58 +85,24 @@ func main() {
 			case gosql.CreateTableKind:
 				err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
 				if err != nil {
-					panic(err)
+					fmt.Println("Error creating table", err)
+					continue repl
 				}
-				fmt.Println("ok")
 			case gosql.InsertKind:
 				err = mb.Insert(stmt.InsertStatement)
 				if err != nil {
-					panic(err)
+					fmt.Println("Error inserting values:", err)
+					continue repl
 				}
-
-				fmt.Println("ok")
 			case gosql.SelectKind:
-				results, err := mb.Select(stmt.SelectStatement)
+				err := doSelect(mb, stmt.SelectStatement)
 				if err != nil {
-					panic(err)
+					fmt.Println("Error selecting values:", err)
+					continue repl
 				}
-
-				for _, col := range results.Columns {
-					fmt.Printf("| %s ", col.Name)
-				}
-				fmt.Println("|")
-
-				for i := 0; i < 20; i++ {
-					fmt.Printf("=")
-				}
-				fmt.Println()
-
-				for _, result := range results.Rows {
-					fmt.Printf("|")
-
-					for i, cell := range result {
-						typ := results.Columns[i].Type
-						s := ""
-						switch typ {
-						case gosql.IntType:
-							s = fmt.Sprintf("%d", cell.AsInt())
-						case gosql.TextType:
-							s = cell.AsText()
-						case gosql.BoolType:
-							s = "true"
-							if !cell.AsBool() {
-								s = "false"
-							}
-						}
-
-						fmt.Printf(" %s | ", s)
-					}
-
-					fmt.Println()
-				}
-
-				fmt.Println("ok")
 			}
 		}
+
+		fmt.Println("ok")
 	}
 }

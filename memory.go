@@ -13,7 +13,8 @@ func (mc MemoryCell) AsInt() int32 {
 	var i int32
 	err := binary.Read(bytes.NewBuffer(mc), binary.BigEndian, &i)
 	if err != nil {
-		panic(err)
+		fmt.Println("Corrupted data: %s", err)
+		return 0
 	}
 
 	return i
@@ -42,13 +43,15 @@ func literalToMemoryCell(t *token) MemoryCell {
 		buf := new(bytes.Buffer)
 		i, err := strconv.Atoi(t.value)
 		if err != nil {
-			panic(err)
+			fmt.Println("Corrupted data: %s", err)
+			return MemoryCell(nil)
 		}
 
 		// TODO: handle bigint
 		err = binary.Write(buf, binary.BigEndian, int32(i))
 		if err != nil {
-			panic(err)
+			fmt.Println("Corrupted data: %s", err)
+			return MemoryCell(nil)
 		}
 		return MemoryCell(buf.Bytes())
 	}
@@ -242,7 +245,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 
 	for i := range t.rows {
 		result := []Cell{}
-		isFirstRow := i == 0
+		isFirstRow := len(results) == 0
 
 		if slct.where != nil {
 			val, _, _, err := t.evaluateCell(uint(i), *slct.where)
