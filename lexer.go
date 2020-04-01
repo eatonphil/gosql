@@ -309,6 +309,8 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 		if c == delimiter {
 			// SQL escapes are via double characters, not backslash.
 			if cur.pointer+1 >= uint(len(source)) || source[cur.pointer+1] != delimiter {
+				cur.pointer++
+				cur.loc.col++
 				return &token{
 					value: string(value),
 					loc:   ic.loc,
@@ -400,6 +402,9 @@ lex:
 		hint := ""
 		if len(tokens) > 0 {
 			hint = " after " + tokens[len(tokens)-1].value
+		}
+		for _, t := range tokens {
+			fmt.Println(t.value)
 		}
 		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.loc.line, cur.loc.col)
 	}

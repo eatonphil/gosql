@@ -24,7 +24,7 @@ func (mc MemoryCell) AsText() string {
 }
 
 func (mc MemoryCell) AsBool() bool {
-	return mc != nil
+	return len(mc) != 0
 }
 
 func (mc MemoryCell) equals(b MemoryCell) bool {
@@ -69,8 +69,8 @@ func literalToMemoryCell(t *token) MemoryCell {
 }
 
 var (
-	trueToken  = tokenFromKeyword(trueKeyword)
-	falseToken = tokenFromKeyword(falseKeyword)
+	trueToken  = token{kind: boolKind, value: "true"}
+	falseToken = token{kind: boolKind, value: "false"}
 
 	trueMemoryCell  = literalToMemoryCell(&trueToken)
 	falseMemoryCell = literalToMemoryCell(&falseToken)
@@ -98,16 +98,14 @@ func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (MemoryCell, 
 		return nil, "", 0, ErrColumnDoesNotExist
 	}
 
-	if lit.kind == numericKind || lit.kind == stringKind {
-		columnType := IntType
-		if lit.kind == stringKind {
-			columnType = TextType
-		}
-
-		return literalToMemoryCell(lit), "?column?", columnType, nil
+	columnType := IntType
+	if lit.kind == stringKind {
+		columnType = TextType
+	} else if lit.kind == boolKind {
+		columnType = BoolType
 	}
 
-	return nil, "", 0, ErrInvalidCell
+	return literalToMemoryCell(lit), "?column?", columnType, nil
 }
 
 func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (MemoryCell, string, ColumnType, error) {
@@ -131,15 +129,16 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (MemoryCell, s
 	case symbolKind:
 		switch symbol(bexp.op.value) {
 		case eqSymbol:
-			if lt == TextType && rt == TextType && l.AsText() == r.AsText() {
+			eq := l.equals(r)
+			if lt == TextType && rt == TextType && eq {
 				return trueMemoryCell, "?column?", BoolType, nil
 			}
 
-			if lt == IntType && rt == IntType && l.AsInt() == r.AsInt() {
+			if lt == IntType && rt == IntType && eq {
 				return trueMemoryCell, "?column?", BoolType, nil
 			}
 
-			if lt == BoolType && rt == BoolType && l.AsBool() == r.AsBool() {
+			if lt == BoolType && rt == BoolType && eq {
 				return trueMemoryCell, "?column?", BoolType, nil
 			}
 
@@ -157,11 +156,10 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (MemoryCell, s
 
 			return literalToMemoryCell(&token{kind: stringKind, value: l.AsText() + r.AsText()}), "?column?", TextType, nil
 		case plusSymbol:
-			if lt != TextType || rt != TextType {
+			if lt != IntType || rt != IntType {
 				return nil, "", 0, ErrInvalidOperands
 			}
 
-			// TODO: overflow?
 			iValue := int(l.AsInt() + r.AsInt())
 			return literalToMemoryCell(&token{kind: stringKind, value: strconv.Itoa(iValue)}), "?column?", TextType, nil
 		default:
@@ -238,21 +236,8 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}{}
 
 	if slct.from == nil {
-		result := []MemoryCell{}
-		for _, col := range *slct.item {
-			nonImmediateLiteral := !col.asterisk && col.exp.kind == literalKind && !(col.exp.literal.kind == numericKind)
-			if nonImmediateLiteral || col.asterisk || col.exp.kind != literalKind {
-				return nil, ErrInvalidSelectItem
-			}
-
-			emptyTable := &table{}
-			value, _, _, err := emptyTable.evaluateCell(0, *col.exp)
-			if err != nil {
-				return nil, err
-			}
-
-			result = append(result, value)
-		}
+		t = &table{}
+		t.rows = [][]MemoryCell{{}}
 	}
 
 	for i := range t.rows {
@@ -293,7 +278,6 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 			}
 
 			result = append(result, value)
-			return nil, ErrColumnDoesNotExist
 		}
 
 		results = append(results, result)

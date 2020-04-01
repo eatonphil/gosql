@@ -66,6 +66,11 @@ func main() {
 							s = fmt.Sprintf("%d", cell.AsInt())
 						case gosql.TextType:
 							s = cell.AsText()
+						case gosql.BoolType:
+							s = "true"
+							if !cell.AsBool() {
+								s = "false"
+							}
 						}
 
 						fmt.Printf(" %s | ", s)

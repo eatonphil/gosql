@@ -276,6 +276,21 @@ func TestLex(t *testing.T) {
 		err    error
 	}{
 		{
+			input: "select true",
+			tokens: []token{
+				{
+					loc:   location{col: 0, line: 0},
+					value: string(selectKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 7, line: 0},
+					value: "true",
+					kind:  boolKind,
+				},
+			},
+		},
+		{
 			input: "select 1",
 			tokens: []token{
 				{
@@ -287,6 +302,37 @@ func TestLex(t *testing.T) {
 					loc:   location{col: 7, line: 0},
 					value: "1",
 					kind:  numericKind,
+				},
+			},
+			err: nil,
+		},
+		{
+			input: "select 'foo' || 'bar';",
+			tokens: []token{
+				{
+					loc:   location{col: 0, line: 0},
+					value: string(selectKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 7, line: 0},
+					value: "foo",
+					kind:  stringKind,
+				},
+				{
+					loc:   location{col: 13, line: 0},
+					value: string(concatSymbol),
+					kind:  symbolKind,
+				},
+				{
+					loc:   location{col: 16, line: 0},
+					value: "bar",
+					kind:  stringKind,
+				},
+				{
+					loc:   location{col: 21, line: 0},
+					value: string(semicolonSymbol),
+					kind:  symbolKind,
 				},
 			},
 			err: nil,

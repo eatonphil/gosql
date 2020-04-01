@@ -62,7 +62,7 @@ func parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, boo
 func parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, uint, bool) {
 	cursor := initialCursor
 
-	kinds := []tokenKind{identifierKind, numericKind, stringKind}
+	kinds := []tokenKind{identifierKind, numericKind, stringKind, boolKind}
 	for _, kind := range kinds {
 		t, newCursor, ok := parseTokenKind(tokens, cursor, kind)
 		if ok {
@@ -167,7 +167,8 @@ outer:
 			si = selectItem{asterisk: true}
 		} else {
 			asToken := tokenFromKeyword(asKeyword)
-			exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), asToken, tokenFromSymbol(semicolonSymbol)})
+			delimiters := append(delimiters, tokenFromSymbol(commaSymbol), asToken)
+			exp, newCursor, ok := parseExpression(tokens, cursor, delimiters)
 			if !ok {
 				helpMessage(tokens, cursor, "Expected expression")
 				return nil, initialCursor, false
@@ -215,7 +216,8 @@ func parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) 
 
 	slct := SelectStatement{}
 
-	item, newCursor, ok := parseSelectItem(tokens, cursor, []token{tokenFromKeyword(fromKeyword), delimiter})
+	fromToken := tokenFromKeyword(fromKeyword)
+	item, newCursor, ok := parseSelectItem(tokens, cursor, []token{fromToken, delimiter})
 	if !ok {
 		return nil, initialCursor, false
 	}
@@ -226,7 +228,7 @@ func parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) 
 	whereToken := tokenFromKeyword(whereKeyword)
 	delimiters := []token{delimiter, whereToken}
 
-	_, cursor, ok = parseToken(tokens, cursor, tokenFromKeyword(fromKeyword))
+	_, cursor, ok = parseToken(tokens, cursor, fromToken)
 	if ok {
 		from, newCursor, ok := parseFromItem(tokens, cursor, delimiters)
 		if !ok {
