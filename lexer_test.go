@@ -134,6 +134,31 @@ func TestToken_lexString(t *testing.T) {
 	}
 }
 
+func TestToken_lexSymbol(t *testing.T) {
+	tests := []struct {
+		symbol bool
+		value  string
+	}{
+		{
+			symbol: true,
+			value:  "= ",
+		},
+		{
+			symbol: true,
+			value:  "||",
+		},
+	}
+
+	for _, test := range tests {
+		tok, _, ok := lexSymbol(test.value, cursor{})
+		assert.Equal(t, test.symbol, ok, test.value)
+		if ok {
+			test.value = strings.TrimSpace(test.value)
+			assert.Equal(t, test.value, tok.value, test.value)
+		}
+	}
+}
+
 func TestToken_lexIdentifier(t *testing.T) {
 	tests := []struct {
 		identifier bool
@@ -251,6 +276,21 @@ func TestLex(t *testing.T) {
 		err    error
 	}{
 		{
+			input: "select true",
+			tokens: []token{
+				{
+					loc:   location{col: 0, line: 0},
+					value: string(selectKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 7, line: 0},
+					value: "true",
+					kind:  boolKind,
+				},
+			},
+		},
+		{
 			input: "select 1",
 			tokens: []token{
 				{
@@ -262,6 +302,37 @@ func TestLex(t *testing.T) {
 					loc:   location{col: 7, line: 0},
 					value: "1",
 					kind:  numericKind,
+				},
+			},
+			err: nil,
+		},
+		{
+			input: "select 'foo' || 'bar';",
+			tokens: []token{
+				{
+					loc:   location{col: 0, line: 0},
+					value: string(selectKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 7, line: 0},
+					value: "foo",
+					kind:  stringKind,
+				},
+				{
+					loc:   location{col: 13, line: 0},
+					value: string(concatSymbol),
+					kind:  symbolKind,
+				},
+				{
+					loc:   location{col: 16, line: 0},
+					value: "bar",
+					kind:  stringKind,
+				},
+				{
+					loc:   location{col: 21, line: 0},
+					value: string(semicolonSymbol),
+					kind:  symbolKind,
 				},
 			},
 			err: nil,

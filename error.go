@@ -8,4 +8,6 @@ var (
 	ErrInvalidSelectItem  = errors.New("Select item is not valid")
 	ErrInvalidDatatype    = errors.New("Invalid datatype")
 	ErrMissingValues      = errors.New("Missing values")
+	ErrInvalidCell        = errors.New("Cell is invalid")
+	ErrInvalidOperands    = errors.New("Operands are invalid")
 )

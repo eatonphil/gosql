@@ -23,6 +23,11 @@ const (
 	valuesKeyword keyword = "values"
 	intKeyword    keyword = "int"
 	textKeyword   keyword = "text"
+	whereKeyword  keyword = "where"
+	andKeyword    keyword = "and"
+	orKeyword     keyword = "or"
+	trueKeyword   keyword = "true"
+	falseKeyword  keyword = "false"
 )
 
 type symbol string
@@ -31,8 +36,12 @@ const (
 	semicolonSymbol  symbol = ";"
 	asteriskSymbol   symbol = "*"
 	commaSymbol      symbol = ","
-	leftparenSymbol  symbol = "("
-	rightparenSymbol symbol = ")"
+	leftParenSymbol  symbol = "("
+	rightParenSymbol symbol = ")"
+	eqSymbol         symbol = "="
+	neqSymbol        symbol = "<>"
+	concatSymbol     symbol = "||"
+	plusSymbol       symbol = "+"
 )
 
 type tokenKind uint
@@ -43,6 +52,7 @@ const (
 	identifierKind
 	stringKind
 	numericKind
+	boolKind
 )
 
 type token struct {
@@ -62,11 +72,56 @@ func (t *token) equals(other *token) bool {
 
 type lexer func(string, cursor) (*token, cursor, bool)
 
+func longestMatch(source string, ic cursor, options []string) string {
+	var value []byte
+	var skipList []int
+	var match string
+
+	cur := ic
+
+	for {
+		value = append(value, strings.ToLower(string(source[cur.pointer]))...)
+		cur.pointer++
+
+	match:
+		for i, option := range options {
+			for _, skip := range skipList {
+				if i == skip {
+					continue match
+				}
+			}
+
+			// Deal with cases like INT vs INTO
+			if option == string(value) {
+				skipList = append(skipList, i)
+				if len(option) > len(match) {
+					match = string(option)
+				}
+
+				continue
+			}
+
+			sharesPrefix := string(value) == option[:cur.pointer-ic.pointer]
+			tooLong := len(value) > len(option)
+			if tooLong || !sharesPrefix {
+				skipList = append(skipList, i)
+			}
+		}
+
+		if len(skipList) == len(options) {
+			break
+		}
+	}
+
+	return match
+}
+
 func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	c := source[ic.pointer]
 	cur := ic
-	cur.loc.col++
+	// Will get overwritten later if not an ignored syntax
 	cur.pointer++
+	cur.loc.col++
 
 	switch c {
 	// Syntax that should be thrown away
@@ -78,26 +133,38 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 		fallthrough
 	case ' ':
 		return nil, cur, true
+	}
 
 	// Syntax that should be kept
-	case ',':
-		fallthrough
-	case '(':
-		fallthrough
-	case ')':
-		fallthrough
-	case ';':
-		fallthrough
-	case '*':
-		break
+	symbols := []symbol{
+		eqSymbol,
+		neqSymbol,
+		concatSymbol,
+		plusSymbol,
+		commaSymbol,
+		leftParenSymbol,
+		rightParenSymbol,
+		semicolonSymbol,
+		asteriskSymbol,
+	}
 
+	var options []string
+	for _, s := range symbols {
+		options = append(options, string(s))
+	}
+
+	// Use `ic`, not `cur`
+	match := longestMatch(source, ic, options)
 	// Unknown character
-	default:
+	if match == "" {
 		return nil, ic, false
 	}
 
+	cur.pointer = ic.pointer + uint(len(match))
+	cur.loc.col = ic.loc.col + uint(len(match))
+
 	return &token{
-		value: string(c),
+		value: match,
 		loc:   ic.loc,
 		kind:  symbolKind,
 	}, cur, true
@@ -111,63 +178,39 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		valuesKeyword,
 		tableKeyword,
 		createKeyword,
+		whereKeyword,
 		fromKeyword,
 		intoKeyword,
 		textKeyword,
 		intKeyword,
+		andKeyword,
+		orKeyword,
 		asKeyword,
+		trueKeyword,
+		falseKeyword,
 	}
 
-	var value []byte
-	var skipList []int
-	var match string
-
-	for {
-		value = append(value, source[cur.pointer])
-		cur.pointer++
-
-	keyword:
-		for i, keyword := range keywords {
-			for _, skip := range skipList {
-				if i == skip {
-					continue keyword
-				}
-			}
-
-			// Deal with cases like INT vs INTO
-			if string(keyword) == strings.ToLower(string(value)) {
-				skipList = append(skipList, i)
-				if len(keyword) > len(match) {
-					match = string(keyword)
-				}
-
-				continue
-			}
-
-			sharesPrefix := strings.ToLower(string(value)) == string(keyword)[:cur.pointer-ic.pointer]
-			tooLong := len(value) > len(keyword)
-			if tooLong || !sharesPrefix {
-				skipList = append(skipList, i)
-			}
-		}
-
-		if len(skipList) == len(keywords) {
-			break
-		}
+	var options []string
+	for _, k := range keywords {
+		options = append(options, string(k))
 	}
 
+	match := longestMatch(source, ic, options)
 	if match == "" {
 		return nil, ic, false
 	}
 
-	// Set pointer and col exactly because of partial matches
-	// while iterating over keywords
 	cur.pointer = ic.pointer + uint(len(match))
-	cur.loc.col = cur.loc.col + uint(len(match))
+	cur.loc.col = ic.loc.col + uint(len(match))
+
+	kind := keywordKind
+	if match == string(trueKeyword) || match == string(falseKeyword) {
+		kind = boolKind
+	}
 
 	return &token{
 		value: match,
-		kind:  keywordKind,
+		kind:  kind,
 		loc:   ic.loc,
 	}, cur, true
 }
@@ -266,6 +309,8 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 		if c == delimiter {
 			// SQL escapes are via double characters, not backslash.
 			if cur.pointer+1 >= uint(len(source)) || source[cur.pointer+1] != delimiter {
+				cur.pointer++
+				cur.loc.col++
 				return &token{
 					value: string(value),
 					loc:   ic.loc,
@@ -357,6 +402,9 @@ lex:
 		hint := ""
 		if len(tokens) > 0 {
 			hint = " after " + tokens[len(tokens)-1].value
+		}
+		for _, t := range tokens {
+			fmt.Println(t.value)
 		}
 		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.loc.line, cur.loc.col)
 	}

@@ -5,11 +5,13 @@ type ColumnType uint
 const (
 	TextType ColumnType = iota
 	IntType
+	BoolType
 )
 
 type Cell interface {
 	AsText() string
 	AsInt() int32
+	AsBool() bool
 }
 
 type Results struct {
