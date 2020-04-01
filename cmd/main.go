@@ -1,17 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
-	"strings"
 
 	"github.com/eatonphil/gosql"
 
+	"github.com/chzyer/readline"
 	"github.com/olekukonko/tablewriter"
 )
 
-func doSelect(mb gosql.Backend, slct* gosql.SelectStatement) error {
+func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 	results, err := mb.Select(slct)
 	if err != nil {
 		return err
@@ -58,7 +58,11 @@ func doSelect(mb gosql.Backend, slct* gosql.SelectStatement) error {
 	table.AppendBulk(rows)
 	table.Render()
 
-	fmt.Printf("(%d results)\n", len(rows))
+	if len(rows) == 1 {
+		fmt.Println("(1 result)")
+	} else {
+		fmt.Printf("(%d results)\n", len(rows))
+	}
 
 	return nil
 }
@@ -66,15 +70,37 @@ func doSelect(mb gosql.Backend, slct* gosql.SelectStatement) error {
 func main() {
 	mb := gosql.NewMemoryBackend()
 
-	reader := bufio.NewReader(os.Stdin)
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:          "# ",
+		HistoryFile:     "/tmp/gosql.tmp",
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+
 	fmt.Println("Welcome to gosql.")
 repl:
 	for {
 		fmt.Print("# ")
-		text, err := reader.ReadString('\n')
-		text = strings.Replace(text, "\n", "", -1)
+		line, err := l.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				break
+			} else {
+				continue repl
+			}
+		} else if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Println("Error while reading line:", err)
+			continue repl
+		}
 
-		ast, err := gosql.Parse(text)
+		ast, err := gosql.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
 			continue repl

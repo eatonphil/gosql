@@ -17,7 +17,7 @@ ok
    name   | age
 ----------+------
   Stephen |  16
-(1 results)
+(1 result)
 ok
 # INSERT INTO users VALUES ('Adrienne', 23);
 ok
@@ -25,7 +25,7 @@ ok
   age |   name
 ------+-----------
    25 | Adrienne
-(1 results)
+(1 result)
 ok
 # SELECT name FROM users;
     name
