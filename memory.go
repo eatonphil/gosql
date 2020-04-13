@@ -344,6 +344,8 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 			dt = IntType
 		case "text":
 			dt = TextType
+		case "boolean":
+			dt = BoolType
 		default:
 			return ErrInvalidDatatype
 		}
