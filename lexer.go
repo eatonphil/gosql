@@ -23,6 +23,7 @@ const (
 	valuesKeyword keyword = "values"
 	intKeyword    keyword = "int"
 	textKeyword   keyword = "text"
+	boolKeyword   keyword = "boolean"
 	whereKeyword  keyword = "where"
 	andKeyword    keyword = "and"
 	orKeyword     keyword = "or"
@@ -182,6 +183,7 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		fromKeyword,
 		intoKeyword,
 		textKeyword,
+		boolKeyword,
 		intKeyword,
 		andKeyword,
 		orKeyword,
