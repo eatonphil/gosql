@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/eatonphil/gosql"
@@ -10,9 +9,7 @@ import (
 func main() {
 	mb := gosql.NewMemoryBackend()
 
-	source := bytes.NewBufferString("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
-
-	ast, err := gosql.Parse(source)
+	ast, err := gosql.Parse("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
 	if err != nil {
 		panic(err)
 	}

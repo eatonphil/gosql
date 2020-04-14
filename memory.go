@@ -53,7 +53,7 @@ func literalToMemoryCell(t *token) MemoryCell {
 			fmt.Printf("Corrupted data [%s]: %s\n", string(buf.Bytes()), err)
 			return MemoryCell(nil)
 		}
-		return MemoryCell(buf.Bytes())
+		return buf.Bytes()
 	}
 
 	if t.kind == stringKind {
@@ -62,7 +62,7 @@ func literalToMemoryCell(t *token) MemoryCell {
 
 	if t.kind == boolKind {
 		if t.value == "true" {
-			return MemoryCell([]byte{1})
+			return []byte{1}
 		} else {
 			return MemoryCell(nil)
 		}

@@ -121,7 +121,7 @@ func longestMatch(source string, ic cursor, options []string) string {
 			if option == string(value) {
 				skipList = append(skipList, i)
 				if len(option) > len(match) {
-					match = string(option)
+					match = option
 				}
 
 				continue
