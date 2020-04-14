@@ -99,7 +99,9 @@ repl:
 			fmt.Println("Error while reading line:", err)
 			continue repl
 		}
-
+		if line == "quit" || line == "exit" {
+			break
+		}
 		ast, err := gosql.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
