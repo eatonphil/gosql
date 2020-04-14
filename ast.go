@@ -1,5 +1,7 @@
 package gosql
 
+import "fmt"
+
 type expressionKind uint
 
 const (
@@ -13,10 +15,25 @@ type binaryExpression struct {
 	op token
 }
 
+func (be binaryExpression) generateCode() string {
+	return fmt.Sprintf("(%s %s %s)", be.a.generateCode(), be.op.value, be.b.generateCode())
+}
+
 type expression struct {
 	literal *token
 	binary  *binaryExpression
 	kind    expressionKind
+}
+
+func (e expression) generateCode() string {
+	switch e.kind {
+	case literalKind:
+		return fmt.Sprintf(e.literal.value)
+	case binaryKind:
+		return e.binary.generateCode()
+	}
+
+	return ""
 }
 
 type identifier expression

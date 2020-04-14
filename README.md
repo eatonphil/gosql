@@ -27,6 +27,13 @@ ok
    25 | Adrienne
 (1 result)
 ok
+# SELECT age, name FROM users WHERE age = 23 OR age = 16;
+  age |   name
+------+-----------
+   16 | Stephen
+   23 | Adrienne
+(2 results)
+ok
 # SELECT name FROM users;
     name
 ------------

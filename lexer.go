@@ -62,6 +62,31 @@ type token struct {
 	loc   location
 }
 
+func (t token) bindingPower() (uint, uint) {
+	switch t.kind {
+	case keywordKind:
+		switch keyword(t.value) {
+		case andKeyword:
+			return 1, 1
+		case orKeyword:
+			return 1, 1
+		}
+	case symbolKind:
+		switch symbol(t.value) {
+		case eqSymbol:
+			return 2, 2
+		case neqSymbol:
+			return 2, 2
+		case concatSymbol:
+			return 3, 3
+		case plusSymbol:
+			return 3, 3
+		}
+	}
+
+	return 0, 0
+}
+
 type cursor struct {
 	pointer uint
 	loc     location

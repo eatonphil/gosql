@@ -76,7 +76,7 @@ func parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, u
 	return nil, initialCursor, false
 }
 
-func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*expression, uint, bool) {
+func parseExpression(tokens []*token, initialCursor uint, delimiters []token, min_bp uint) (*expression, uint, bool) {
 	cursor := initialCursor
 
 	var exp *expression
@@ -85,7 +85,7 @@ func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*
 		cursor = newCursor
 		rightParenToken := tokenFromSymbol(rightParenSymbol)
 
-		exp, cursor, ok = parseExpression(tokens, cursor, append(delimiters, rightParenToken))
+		exp, cursor, ok = parseExpression(tokens, cursor, append(delimiters, rightParenToken), min_bp)
 		if !ok {
 			helpMessage(tokens, cursor, "Expected expression after opening paren")
 			return nil, initialCursor, false
@@ -103,53 +103,64 @@ func parseExpression(tokens []*token, initialCursor uint, delimiters []token) (*
 		}
 	}
 
-	for _, d := range delimiters {
-		_, _, ok = parseToken(tokens, cursor, d)
-		if ok {
-			return exp, cursor, true
+	lastCursor := cursor
+outer:
+	for cursor < uint(len(tokens)) {
+		for _, d := range delimiters {
+			_, _, ok = parseToken(tokens, cursor, d)
+			if ok {
+				break outer
+			}
 		}
-	}
 
-	binOps := []token{
-		tokenFromKeyword(andKeyword),
-		tokenFromKeyword(orKeyword),
-		tokenFromSymbol(eqSymbol),
-		tokenFromSymbol(neqSymbol),
-		tokenFromSymbol(concatSymbol),
-		tokenFromSymbol(plusSymbol),
-	}
+		binOps := []token{
+			tokenFromKeyword(andKeyword),
+			tokenFromKeyword(orKeyword),
+			tokenFromSymbol(eqSymbol),
+			tokenFromSymbol(neqSymbol),
+			tokenFromSymbol(concatSymbol),
+			tokenFromSymbol(plusSymbol),
+		}
 
-	binExp := binaryExpression{
-		a: *exp,
-	}
+		var op *token = nil
+		for _, bo := range binOps {
+			var t *token
+			t, cursor, ok = parseToken(tokens, cursor, bo)
+			if ok {
+				op = t
+				break
+			}
+		}
 
-	binOpFound := false
-	for _, op := range binOps {
-		var t *token
-		t, cursor, ok = parseToken(tokens, cursor, op)
-		if ok {
-			binExp.op = *t
-			binOpFound = true
+		if op == nil {
+			helpMessage(tokens, cursor, "Expected binary operator")
+			return nil, initialCursor, false
+		}
+
+		l_bp, r_bp := op.bindingPower()
+		if l_bp < min_bp {
+			cursor = lastCursor
 			break
 		}
+
+		b, newCursor, ok := parseExpression(tokens, cursor, delimiters, r_bp)
+		if !ok {
+			helpMessage(tokens, cursor, "Expected right operand")
+			return nil, initialCursor, false
+		}
+		exp = &expression{
+			binary: &binaryExpression{
+				*exp,
+				*b,
+				*op,
+			},
+			kind: binaryKind,
+		}
+		cursor = newCursor
+		lastCursor = cursor
 	}
 
-	if !binOpFound {
-		helpMessage(tokens, cursor, "Expected binary operator")
-		return nil, initialCursor, false
-	}
-
-	b, newCursor, ok := parseExpression(tokens, cursor, delimiters)
-	if !ok {
-		helpMessage(tokens, cursor, "Expected right operand")
-		return nil, initialCursor, false
-	}
-
-	binExp.b = *b
-	return &expression{
-		binary: &binExp,
-		kind:   binaryKind,
-	}, newCursor, true
+	return exp, cursor, true
 }
 
 // expression [AS ident] [, ...]
@@ -186,7 +197,7 @@ outer:
 		} else {
 			asToken := tokenFromKeyword(asKeyword)
 			delimiters := append(delimiters, tokenFromSymbol(commaSymbol), asToken)
-			exp, newCursor, ok := parseExpression(tokens, cursor, delimiters)
+			exp, newCursor, ok := parseExpression(tokens, cursor, delimiters, 0)
 			if !ok {
 				helpMessage(tokens, cursor, "Expected expression")
 				return nil, initialCursor, false
@@ -260,7 +271,7 @@ func parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) 
 
 	_, cursor, ok = parseToken(tokens, cursor, whereToken)
 	if ok {
-		where, newCursor, ok := parseExpression(tokens, cursor, []token{delimiter})
+		where, newCursor, ok := parseExpression(tokens, cursor, []token{delimiter}, 0)
 		if !ok {
 			helpMessage(tokens, cursor, "Expected WHERE conditionals")
 			return nil, initialCursor, false
@@ -296,7 +307,7 @@ func parseExpressions(tokens []*token, initialCursor uint, delimiter token) (*[]
 			}
 		}
 
-		exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), tokenFromSymbol(rightParenSymbol)})
+		exp, newCursor, ok := parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), tokenFromSymbol(rightParenSymbol)}, 0)
 		if !ok {
 			helpMessage(tokens, cursor, "Expected expression")
 			return nil, initialCursor, false
