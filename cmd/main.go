@@ -24,17 +24,17 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	header := make([]string, len(results.Columns))
-	for i, col := range results.Columns {
-		header[i] = col.Name
+	header := []string{}
+	for _, col := range results.Columns {
+		header = append(header, col.Name)
 	}
 	table.SetHeader(header)
 	table.SetAutoFormatHeaders(false)
 
-	rows := make([][]string, len(results.Rows))
-	for i, result := range results.Rows {
-		row := make([]string, len(result))
-		for j, cell := range result {
+	rows := [][]string{}
+	for _, result := range results.Rows {
+		row := []string{}
+		for i, cell := range result {
 			typ := results.Columns[i].Type
 			s := ""
 			switch typ {
@@ -49,10 +49,10 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 				}
 			}
 
-			row[j] = s
+			row = append(row, s)
 		}
 
-		rows[i] = row
+		rows = append(rows, row)
 	}
 
 	table.SetBorder(false)
