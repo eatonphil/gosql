@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/eatonphil/gosql"
 
@@ -23,17 +24,17 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	header := []string{}
-	for _, col := range results.Columns {
-		header = append(header, col.Name)
+	header := make([]string, len(results.Columns))
+	for i, col := range results.Columns {
+		header[i] = col.Name
 	}
 	table.SetHeader(header)
 	table.SetAutoFormatHeaders(false)
 
-	rows := [][]string{}
-	for _, result := range results.Rows {
-		row := []string{}
-		for i, cell := range result {
+	rows := make([][]string, len(results.Rows))
+	for i, result := range results.Rows {
+		row := make([]string, len(result))
+		for j, cell := range result {
 			typ := results.Columns[i].Type
 			s := ""
 			switch typ {
@@ -48,10 +49,10 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 				}
 			}
 
-			row = append(row, s)
+			row[j] = s
 		}
 
-		rows = append(rows, row)
+		rows[i] = row
 	}
 
 	table.SetBorder(false)
@@ -99,9 +100,13 @@ repl:
 			fmt.Println("Error while reading line:", err)
 			continue repl
 		}
-		if line == "quit" || line == "exit" {
+
+		// basic commands ignore whitespace
+		trimmedLine := strings.Trim(line, " ")
+		if trimmedLine == "quit" || trimmedLine == "exit" || trimmedLine == "\\q" {
 			break
 		}
+
 		ast, err := gosql.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
