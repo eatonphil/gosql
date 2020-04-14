@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/eatonphil/gosql"
 
@@ -99,9 +100,12 @@ repl:
 			fmt.Println("Error while reading line:", err)
 			continue repl
 		}
-		if line == "quit" || line == "exit" {
+
+		trimmedLine := strings.TrimRight(line, " ")
+		if trimmedLine == "quit" || trimmedLine == "exit" || strings.TrimLeft(trimmedLine, " ") == "\\q" {
 			break
 		}
+
 		ast, err := gosql.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
