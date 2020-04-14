@@ -18,6 +18,7 @@ const (
 	asKeyword     keyword = "as"
 	tableKeyword  keyword = "table"
 	createKeyword keyword = "create"
+	dropKeyword   keyword = "drop"
 	insertKeyword keyword = "insert"
 	intoKeyword   keyword = "into"
 	valuesKeyword keyword = "values"
@@ -204,6 +205,7 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		valuesKeyword,
 		tableKeyword,
 		createKeyword,
+		dropKeyword,
 		whereKeyword,
 		fromKeyword,
 		intoKeyword,

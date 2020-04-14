@@ -116,6 +116,12 @@ repl:
 					fmt.Println("Error creating table", err)
 					continue repl
 				}
+			case gosql.DropTableKind:
+				err = mb.DropTable(ast.Statements[0].DropTableStatement)
+				if err != nil {
+					fmt.Println("Error dropping table", err)
+					continue repl
+				}
 			case gosql.InsertKind:
 				err = mb.Insert(stmt.InsertStatement)
 				if err != nil {

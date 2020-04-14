@@ -464,6 +464,32 @@ func parseCreateTableStatement(tokens []*token, initialCursor uint, delimiter to
 	}, cursor, true
 }
 
+func parseDropTableStatement(tokens []*token, initialCursor uint, delimiter token) (*DropTableStatement, uint, bool) {
+	cursor := initialCursor
+	ok := false
+
+	_, cursor, ok = parseToken(tokens, cursor, tokenFromKeyword(dropKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	_, cursor, ok = parseToken(tokens, cursor, tokenFromKeyword(tableKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	name, newCursor, ok := parseTokenKind(tokens, cursor, identifierKind)
+	if !ok {
+		helpMessage(tokens, cursor, "Expected table name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	return &DropTableStatement{
+		name: *name,
+	}, cursor, true
+}
+
 func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Statement, uint, bool) {
 	cursor := initialCursor
 
@@ -489,6 +515,14 @@ func parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Stat
 		return &Statement{
 			Kind:                 CreateTableKind,
 			CreateTableStatement: crtTbl,
+		}, newCursor, true
+	}
+
+	dpTbl, newCursor, ok := parseDropTableStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:               DropTableKind,
+			DropTableStatement: dpTbl,
 		}, newCursor, true
 	}
 
