@@ -101,7 +101,6 @@ repl:
 			continue repl
 		}
 
-		// basic commands ignore whitespace
 		trimmedLine := strings.Trim(line, " ")
 		if trimmedLine == "quit" || trimmedLine == "exit" || trimmedLine == "\\q" {
 			break
