@@ -101,8 +101,8 @@ repl:
 			continue repl
 		}
 
-		trimmedLine := strings.Trim(line, " ")
-		if trimmedLine == "quit" || trimmedLine == "exit" || trimmedLine == "\\q" {
+		trimmedLine := strings.TrimRight(line, " ")
+		if trimmedLine == "quit" || trimmedLine == "exit" || strings.TrimLeft(trimmedLine, " ") == "\\q" {
 			break
 		}
 
