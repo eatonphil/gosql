@@ -356,6 +356,14 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 	return nil
 }
 
+func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
+	if _, ok := mb.tables[dt.name.value]; ok {
+		delete(mb.tables, dt.name.value)
+		return nil
+	}
+	return ErrTableDoesNotExist
+}
+
 func NewMemoryBackend() *MemoryBackend {
 	return &MemoryBackend{
 		tables: map[string]*table{},

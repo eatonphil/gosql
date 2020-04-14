@@ -64,6 +64,10 @@ type CreateTableStatement struct {
 	cols *[]*columnDefinition
 }
 
+type DropTableStatement struct {
+	name token
+}
+
 type InsertStatement struct {
 	table  token
 	cols   *[]*identifier
@@ -75,12 +79,14 @@ type AstKind uint
 const (
 	SelectKind AstKind = iota
 	CreateTableKind
+	DropTableKind
 	InsertKind
 )
 
 type Statement struct {
 	SelectStatement      *SelectStatement
 	CreateTableStatement *CreateTableStatement
+	DropTableStatement   *DropTableStatement
 	InsertStatement      *InsertStatement
 	Kind                 AstKind
 }
