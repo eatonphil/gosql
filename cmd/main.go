@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/eatonphil/gosql"
 
@@ -70,7 +69,7 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 
 func main() {
 	mb := gosql.NewMemoryBackend()
-fo
+
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "# ",
 		HistoryFile:     "/tmp/gosql.tmp",
@@ -101,11 +100,6 @@ repl:
 			continue repl
 		}
 
-		trimmedLine := strings.TrimRight(line, " ")
-		if trimmedLine == "quit" || trimmedLine == "exit" || strings.TrimLeft(trimmedLine, " ") == "\\q" {
-			break
-		}
-
 		ast, err := gosql.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
@@ -118,12 +112,6 @@ repl:
 				err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
 				if err != nil {
 					fmt.Println("Error creating table", err)
-					continue repl
-				}
-			case gosql.DropTableKind:
-				err = mb.DropTable(ast.Statements[0].DropTableStatement)
-				if err != nil {
-					fmt.Println("Error dropping table", err)
 					continue repl
 				}
 			case gosql.InsertKind:
