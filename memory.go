@@ -251,8 +251,8 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 				exp: &expression{
 					literal: &token{
 						value: t.columns[i],
-						kind: identifierKind,
-						loc: location{0, uint(len("SELECT") + 1)},
+						kind:  identifierKind,
+						loc:   location{0, uint(len("SELECT") + 1)},
 					},
 					binary: nil,
 					kind:   literalKind,
