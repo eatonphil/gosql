@@ -252,13 +252,13 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 					literal: &token{
 						t.columns[i],
 						identifierKind,
-						location{0, uint(len("SELECT")+1)},
+						location{0, uint(len("SELECT") + 1)},
 					},
 					binary: nil,
-					kind: literalKind,
+					kind:   literalKind,
 				},
 				asterisk: false,
-				as: nil,
+				as:       nil,
 			}
 			*slct.item = append(*slct.item, newSelectItem)
 		}
