@@ -243,6 +243,27 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		t.rows = [][]MemoryCell{{}}
 	}
 
+	// handle SELECT *
+	if len(*slct.item) == 1 && (*slct.item)[0].asterisk {
+		*slct.item = []*selectItem{}
+		for i := 0; i < len(t.columns); i++ {
+			newSelectItem := &selectItem{
+				exp: &expression{
+					literal: &token{
+						t.columns[i],
+						identifierKind,
+						location{0, uint(len("SELECT")+1)},
+					},
+					binary: nil,
+					kind: literalKind,
+				},
+				asterisk: false,
+				as: nil,
+			}
+			*slct.item = append(*slct.item, newSelectItem)
+		}
+	}
+
 	for i := range t.rows {
 		result := []Cell{}
 		isFirstRow := len(results) == 0
@@ -258,9 +279,9 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 			}
 		}
 
+
 		for _, col := range *slct.item {
 			if col.asterisk {
-				// TODO: handle asterisk
 				fmt.Println("Skipping asterisk.")
 				continue
 			}
