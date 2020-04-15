@@ -107,6 +107,11 @@ func longestMatch(source string, ic cursor, options []string) string {
 	cur := ic
 
 	for {
+
+		if cur.pointer > uint(len(source))-1 {
+			break
+		}
+
 		value = append(value, strings.ToLower(string(source[cur.pointer]))...)
 		cur.pointer++
 
