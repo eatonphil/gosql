@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.14
+
+    working_directory: /go/src/github.com/eatonphil/gosql
+    steps:
+      - checkout
+
+      - run: go get -v -t -d ./...
+      - run: go test -v ./...
+      - run: go build cmd/main.go

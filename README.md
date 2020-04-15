@@ -2,6 +2,8 @@
 
 An early PostgreSQL implementation in Go.
 
+[![gosql](https://circleci.com/gh/eatonphil/gosql.svg?style=svg)](https://circleci.com/gh/eatonphil/gosql)
+
 ## Example
 
 ```bash
