@@ -76,7 +76,7 @@ func parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, u
 	return nil, initialCursor, false
 }
 
-func parseExpression(tokens []*token, initialCursor uint, delimiters []token, min_bp uint) (*expression, uint, bool) {
+func parseExpression(tokens []*token, initialCursor uint, delimiters []token, minBp uint) (*expression, uint, bool) {
 	cursor := initialCursor
 
 	var exp *expression
@@ -85,7 +85,7 @@ func parseExpression(tokens []*token, initialCursor uint, delimiters []token, mi
 		cursor = newCursor
 		rightParenToken := tokenFromSymbol(rightParenSymbol)
 
-		exp, cursor, ok = parseExpression(tokens, cursor, append(delimiters, rightParenToken), min_bp)
+		exp, cursor, ok = parseExpression(tokens, cursor, append(delimiters, rightParenToken), minBp)
 		if !ok {
 			helpMessage(tokens, cursor, "Expected expression after opening paren")
 			return nil, initialCursor, false
@@ -137,13 +137,13 @@ outer:
 			return nil, initialCursor, false
 		}
 
-		l_bp, r_bp := op.bindingPower()
-		if l_bp < min_bp {
+		bp := op.bindingPower()
+		if bp < minBp {
 			cursor = lastCursor
 			break
 		}
 
-		b, newCursor, ok := parseExpression(tokens, cursor, delimiters, r_bp)
+		b, newCursor, ok := parseExpression(tokens, cursor, delimiters, bp)
 		if !ok {
 			helpMessage(tokens, cursor, "Expected right operand")
 			return nil, initialCursor, false

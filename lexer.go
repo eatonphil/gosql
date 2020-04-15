@@ -63,29 +63,29 @@ type token struct {
 	loc   location
 }
 
-func (t token) bindingPower() (uint, uint) {
+func (t token) bindingPower() uint {
 	switch t.kind {
 	case keywordKind:
 		switch keyword(t.value) {
 		case andKeyword:
-			return 1, 1
+			fallthrough
 		case orKeyword:
-			return 1, 1
+			return 1
 		}
 	case symbolKind:
 		switch symbol(t.value) {
 		case eqSymbol:
-			return 2, 2
+			fallthrough
 		case neqSymbol:
-			return 2, 2
+			fallthrough
 		case concatSymbol:
-			return 3, 3
+			fallthrough
 		case plusSymbol:
-			return 3, 3
+			return 3
 		}
 	}
 
-	return 0, 0
+	return 0
 }
 
 type cursor struct {
