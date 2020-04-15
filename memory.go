@@ -250,9 +250,9 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 			newSelectItem := &selectItem{
 				exp: &expression{
 					literal: &token{
-						t.columns[i],
-						identifierKind,
-						location{0, uint(len("SELECT") + 1)},
+						value: t.columns[i],
+						kind: identifierKind,
+						loc: location{0, uint(len("SELECT") + 1)},
 					},
 					binary: nil,
 					kind:   literalKind,
