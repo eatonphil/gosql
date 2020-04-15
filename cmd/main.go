@@ -70,7 +70,7 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 
 func main() {
 	mb := gosql.NewMemoryBackend()
-
+fo
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "# ",
 		HistoryFile:     "/tmp/gosql.tmp",
