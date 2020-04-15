@@ -279,7 +279,6 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 			}
 		}
 
-
 		for _, col := range *slct.item {
 			if col.asterisk {
 				fmt.Println("Skipping asterisk.")
