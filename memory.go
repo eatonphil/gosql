@@ -244,23 +244,26 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}
 
 	// handle SELECT *
-	if len(*slct.item) == 1 && (*slct.item)[0].asterisk {
-		*slct.item = []*selectItem{}
-		for i := 0; i < len(t.columns); i++ {
-			newSelectItem := &selectItem{
-				exp: &expression{
-					literal: &token{
-						value: t.columns[i],
-						kind:  identifierKind,
-						loc:   location{0, uint(len("SELECT") + 1)},
+	for i := len(*slct.item)-1; i >= 0; i-- {
+		if (*slct.item)[i].asterisk {
+			newItems := []*selectItem{}
+			for j := 0; j < len(t.columns); j++ {
+				newSelectItem := &selectItem{
+					exp: &expression{
+						literal: &token{
+							value: t.columns[j],
+							kind:  identifierKind,
+							loc:   location{0, uint(len("SELECT") + 1)},
+						},
+						binary: nil,
+						kind:   literalKind,
 					},
-					binary: nil,
-					kind:   literalKind,
-				},
-				asterisk: false,
-				as:       nil,
+					asterisk: false,
+					as:       nil,
+				}
+				newItems = append(newItems, newSelectItem)
 			}
-			*slct.item = append(*slct.item, newSelectItem)
+			*slct.item = append(append((*slct.item)[:i], newItems...), (*slct.item)[i+1:]...)
 		}
 	}
 
