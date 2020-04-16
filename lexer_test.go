@@ -94,6 +94,10 @@ func TestToken_lexString(t *testing.T) {
 		value  string
 	}{
 		{
+			string: false,
+			value:  "a",
+		},
+		{
 			string: true,
 			value:  "'abc'",
 		},
@@ -165,6 +169,11 @@ func TestToken_lexIdentifier(t *testing.T) {
 		input      string
 		value      string
 	}{
+		{
+			identifier: true,
+			input:      "a",
+			value:      "a",
+		},
 		{
 			identifier: true,
 			input:      "abc",
@@ -275,6 +284,21 @@ func TestLex(t *testing.T) {
 		tokens []token
 		err    error
 	}{
+		{
+			input: "select a",
+			tokens: []token{
+				{
+					loc:   location{col: 0, line: 0},
+					value: string(selectKeyword),
+					kind:  keywordKind,
+				},
+				{
+					loc:   location{col: 7, line: 0},
+					value: "a",
+					kind:  identifierKind,
+				},
+			},
+		},
 		{
 			input: "select true",
 			tokens: []token{
