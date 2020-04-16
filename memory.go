@@ -244,8 +244,9 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}
 
 	// handle SELECT *
-	for i := len(*slct.item) - 1; i >= 0; i-- {
-		if (*slct.item)[i].asterisk {
+	finalItems := []*selectItem{}
+	for _, item := range *slct.item {
+		if item.asterisk {
 			newItems := []*selectItem{}
 			for j := 0; j < len(t.columns); j++ {
 				newSelectItem := &selectItem{
@@ -263,7 +264,9 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 				}
 				newItems = append(newItems, newSelectItem)
 			}
-			*slct.item = append(append((*slct.item)[:i], newItems...), (*slct.item)[i+1:]...)
+			finalItems = append(finalItems, newItems...)
+		} else {
+			finalItems = append(finalItems, item)
 		}
 	}
 
@@ -282,7 +285,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 			}
 		}
 
-		for _, col := range *slct.item {
+		for _, col := range finalItems {
 			if col.asterisk {
 				fmt.Println("Skipping asterisk.")
 				continue
