@@ -244,7 +244,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}
 
 	// handle SELECT *
-	for i := len(*slct.item)-1; i >= 0; i-- {
+	for i := len(*slct.item) - 1; i >= 0; i-- {
 		if (*slct.item)[i].asterisk {
 			newItems := []*selectItem{}
 			for j := 0; j < len(t.columns); j++ {
