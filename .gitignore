@@ -1,1 +1,7 @@
 main
+
+# Vim
+*.swp
+*.swo
+*.swn
+*.un~
