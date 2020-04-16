@@ -286,11 +286,6 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		}
 
 		for _, col := range finalItems {
-			if col.asterisk {
-				fmt.Println("Skipping asterisk.")
-				continue
-			}
-
 			value, columnName, columnType, err := t.evaluateCell(uint(i), *col.exp)
 			if err != nil {
 				return nil, err
