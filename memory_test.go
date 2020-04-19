@@ -30,6 +30,9 @@ func TestSelect(t *testing.T) {
 	}
 	assert.NotEqual(t, ast, nil)
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	if err != nil {
+		panic(err)
+	}
 	//
 	ast, err = Parse("INSERT INTO test VALUES(100, 200, 300)")
 	if err != nil {
@@ -61,11 +64,11 @@ func TestSelect(t *testing.T) {
 		for i, col := range res.Columns {
 			switch i {
 			case 0, 3:
-				assert.True(t, col == ResultColumn{IntType, "x"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, 'x'}", col))
+				assert.True(t, col == ResultColumn{IntType, "x"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, \"x\"}", col))
 			case 1, 4:
-				assert.True(t, col == ResultColumn{IntType, "y"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, 'y'}", col))
+				assert.True(t, col == ResultColumn{IntType, "y"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, \"y\"}", col))
 			case 2, 5:
-				assert.True(t, col == ResultColumn{IntType, "z"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, 'z'}", col))
+				assert.True(t, col == ResultColumn{IntType, "z"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, \"z\"}", col))
 			}
 		}
 		for _, cells := range res.Rows {
@@ -101,6 +104,9 @@ func TestInsert(t *testing.T) {
 	}
 	assert.NotEqual(t, ast, nil)
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	if err != nil {
+		panic(err)
+	}
 	//
 	ast, err = Parse("INSERT INTO test VALUES(100, 200, 300)")
 	if err != nil {
