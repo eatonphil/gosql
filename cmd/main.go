@@ -106,7 +106,8 @@ repl:
 			break
 		}
 
-		ast, err := gosql.Parse(line)
+		parser := gosql.Parser{}
+		ast, err := parser.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
 			continue repl

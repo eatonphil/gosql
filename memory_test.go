@@ -1,7 +1,6 @@
 package gosql
 
 import (
-	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -9,39 +8,28 @@ import (
 
 var mb *MemoryBackend
 
-func init() {
-	helpMessagesDisabled = true
-}
-
 func TestSelect(t *testing.T) {
 	mb = NewMemoryBackend()
-	//
-	ast, err := Parse("SELECT * FROM test")
-	if err != nil {
-		panic(err)
-	}
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("SELECT * FROM test")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	_, err = mb.Select(ast.Statements[0].SelectStatement)
-	assert.Equal(t, err, errors.New("Table does not exist"))
-	//
-	ast, err = Parse("CREATE TABLE test(x INT, y INT, z INT);")
-	if err != nil {
-		panic(err)
-	}
+	assert.Equal(t, err, ErrTableDoesNotExist)
+
+	ast, err = parser.Parse("CREATE TABLE test(x INT, y INT, z INT);")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
-	if err != nil {
-		panic(err)
-	}
-	//
-	ast, err = Parse("INSERT INTO test VALUES(100, 200, 300)")
-	if err != nil {
-		panic(err)
-	}
+	assert.Nil(t, err)
+
+	ast, err = parser.Parse("INSERT INTO test VALUES(100, 200, 300)")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.Insert(ast.Statements[0].InsertStatement)
-	assert.Equal(t, err, nil)
-	//
+	assert.Nil(t, err)
+
 	for _, str := range []string{
 		"SELECT * FROM test",
 		"SELECT x FROM test",
@@ -52,7 +40,7 @@ func TestSelect(t *testing.T) {
 		"SELECT *, x, y, z FROM test",
 	} {
 		fmt.Println("(Memory) Testing:", str)
-		ast, err = Parse(str)
+		ast, err = parser.Parse(str)
 		if err != nil {
 			panic(err)
 		}
@@ -89,74 +77,60 @@ func TestSelect(t *testing.T) {
 func TestInsert(t *testing.T) {
 	fmt.Println("(Memory) Testing: INSERT INTO test VALUES(100, 200, 300)")
 	mb = NewMemoryBackend()
-	//
-	ast, err := Parse("INSERT INTO test VALUES(100, 200, 300)")
-	if err != nil {
-		panic(err)
-	}
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("INSERT INTO test VALUES(100, 200, 300)")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.Insert(ast.Statements[0].InsertStatement)
-	assert.Equal(t, err, errors.New("Table does not exist"))
-	//
-	ast, err = Parse("CREATE TABLE test(x INT, y INT, z INT);")
-	if err != nil {
-		panic(err)
-	}
+	assert.Equal(t, err, ErrTableDoesNotExist)
+
+	ast, err = parser.Parse("CREATE TABLE test(x INT, y INT, z INT);")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
-	if err != nil {
-		panic(err)
-	}
-	//
-	ast, err = Parse("INSERT INTO test VALUES(100, 200, 300)")
-	if err != nil {
-		panic(err)
-	}
+	assert.Nil(t, err)
+
+	ast, err = parser.Parse("INSERT INTO test VALUES(100, 200, 300)")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.Insert(ast.Statements[0].InsertStatement)
-	assert.Equal(t, err, nil)
+	assert.Nil(t, err)
 }
 
 func TestCreateTable(t *testing.T) {
 	fmt.Println("(Memory) Testing: CREATE TABLE test(x INT, y INT, z INT)")
 	mb = NewMemoryBackend()
-	//
-	ast, err := Parse("CREATE TABLE test(x INT, y INT, z INT)")
-	if err != nil {
-		panic(err)
-	}
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("CREATE TABLE test(x INT, y INT, z INT)")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
+
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
-	assert.Equal(t, err, nil)
+	assert.Nil(t, err)
 }
 
 func TestDropTable(t *testing.T) {
 	fmt.Println("(Memory) Testing: DROP TABLE test")
 	mb = NewMemoryBackend()
-	//
-	ast, err := Parse("DROP TABLE test;")
-	if err != nil {
-		panic(err)
-	}
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("DROP TABLE test;")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.DropTable(ast.Statements[0].DropTableStatement)
-	assert.Equal(t, err, errors.New("Table does not exist"))
-	//
-	ast, err = Parse("CREATE TABLE test(x INT, y INT, z INT);")
-	if err != nil {
-		panic(err)
-	}
+	assert.Equal(t, err, ErrTableDoesNotExist)
+
+	ast, err = parser.Parse("CREATE TABLE test(x INT, y INT, z INT);")
+	assert.Nil(t, err)
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
-	if err != nil {
-		panic(err)
-	}
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
-	//
-	ast, err = Parse("DROP TABLE test;")
-	if err != nil {
-		panic(err)
-	}
+
+	ast, err = parser.Parse("DROP TABLE test;")
+	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.DropTable(ast.Statements[0].DropTableStatement)
-	assert.Equal(t, err, nil)
+	assert.Nil(t, err)
 }

@@ -3,3 +3,6 @@ fmt:
 
 test:
 	go test -race .
+
+vet:
+	go vet .

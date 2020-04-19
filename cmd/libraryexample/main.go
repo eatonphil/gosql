@@ -9,7 +9,8 @@ import (
 func main() {
 	mb := gosql.NewMemoryBackend()
 
-	ast, err := gosql.Parse("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
+	parser := gosql.Parser{}
+	ast, err := parser.Parse("CREATE TABLE users (id INT, name TEXT); INSERT INTO users VALUES (1, 'Admin'); SELECT id, name FROM users")
 	if err != nil {
 		panic(err)
 	}
