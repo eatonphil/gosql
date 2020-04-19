@@ -18,59 +18,96 @@ func TestSelect(t *testing.T) {
 	_, err = mb.Select(ast.Statements[0].SelectStatement)
 	assert.Equal(t, err, ErrTableDoesNotExist)
 
-	ast, err = parser.Parse("CREATE TABLE test(x INT, y INT, z INT);")
+	ast, err = parser.Parse("CREATE TABLE test(x INT, y INT, z BOOLEAN);")
 	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
 	assert.Nil(t, err)
 
-	ast, err = parser.Parse("INSERT INTO test VALUES(100, 200, 300)")
+	ast, err = parser.Parse("INSERT INTO test VALUES(100, 200, true)")
 	assert.Nil(t, err)
 	assert.NotEqual(t, ast, nil)
 	err = mb.Insert(ast.Statements[0].InsertStatement)
 	assert.Nil(t, err)
 
-	for _, str := range []string{
-		"SELECT * FROM test",
-		"SELECT x FROM test",
-		"SELECT x, y FROM test",
-		"SELECT x, y, z FROM test",
-		"SELECT *, x FROM test",
-		"SELECT *, x, y FROM test",
-		"SELECT *, x, y, z FROM test",
-	} {
-		fmt.Println("(Memory) Testing:", str)
-		ast, err = parser.Parse(str)
-		if err != nil {
-			panic(err)
-		}
+	value100 := literalToMemoryCell(&token{"100", numericKind, location{}})
+	value200 := literalToMemoryCell(&token{"200", numericKind, location{}})
+	xCol := ResultColumn{IntType, "x"}
+	yCol := ResultColumn{IntType, "y"}
+	zCol := ResultColumn{BoolType, "z"}
+
+	tests := []struct{
+		query string
+		results Results
+	}{
+		{
+			"SELECT * FROM test",
+			Results{
+				[]ResultColumn{xCol, yCol, zCol},
+				[][]Cell{{value100, value200, trueMemoryCell}},
+			},
+		},
+		{
+			"SELECT x FROM test",
+			Results{
+				[]ResultColumn{xCol},
+				[][]Cell{{value100}},
+			},
+		},
+		{
+			"SELECT x, y FROM test",
+			Results{
+				[]ResultColumn{xCol, yCol},
+				[][]Cell{{value100, value200}},
+			},
+		},
+		{
+			"SELECT x, y, z FROM test",
+			Results{
+				[]ResultColumn{xCol, yCol, zCol},
+				[][]Cell{{value100, value200, trueMemoryCell}},
+			},
+		},
+		{
+			"SELECT *, x FROM test",
+			Results{
+				[]ResultColumn{xCol, yCol, zCol, xCol},
+				[][]Cell{{value100, value200, trueMemoryCell, value100}},
+			},
+		},
+		{
+			"SELECT *, x, y FROM test",
+			Results{
+				[]ResultColumn{xCol, yCol, zCol, xCol, yCol},
+				[][]Cell{{value100, value200, trueMemoryCell, value100, value200}},
+			},
+		},
+		{
+			"SELECT *, x, y, z FROM test",
+			Results{
+				[]ResultColumn{xCol, yCol, zCol, xCol, yCol, zCol},
+				[][]Cell{{value100, value200, trueMemoryCell, value100, value200, trueMemoryCell}},
+			},
+		},
+		{
+			"SELECT x, *, z FROM test",
+			Results{
+				[]ResultColumn{xCol, xCol, yCol, zCol, zCol},
+				[][]Cell{{value100, value100, value200, trueMemoryCell, trueMemoryCell}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		fmt.Println("(Memory) Testing:", test.query)
+		ast, err = parser.Parse(test.query)
+		assert.Nil(t, err)
 		assert.NotEqual(t, ast, nil)
+
 		var res *Results
 		res, err = mb.Select(ast.Statements[0].SelectStatement)
-		assert.Equal(t, err, nil)
-		assert.NotEqual(t, res, nil)
-		for i, col := range res.Columns {
-			switch i {
-			case 0, 3:
-				assert.True(t, col == ResultColumn{IntType, "x"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, \"x\"}", col))
-			case 1, 4:
-				assert.True(t, col == ResultColumn{IntType, "y"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, \"y\"}", col))
-			case 2, 5:
-				assert.True(t, col == ResultColumn{IntType, "z"}, fmt.Sprintf("Have: %s, want: ResultColumn{IntType, \"z\"}", col))
-			}
-		}
-		for _, cells := range res.Rows {
-			for i, cell := range cells {
-				switch i {
-				case 0, 3:
-					assert.True(t, cell.AsInt() == 100, fmt.Sprintf("Have: %d, want: 100", cell.AsInt()))
-				case 1, 4:
-					assert.True(t, cell.AsInt() == 200, fmt.Sprintf("Have: %d, want: 200", cell.AsInt()))
-				case 2, 5:
-					assert.True(t, cell.AsInt() == 300, fmt.Sprintf("Have: %d, want: 300", cell.AsInt()))
-				}
-			}
-		}
+		assert.Nil(t, err)
+		assert.Equal(t, *res, test.results)
 	}
 }
 
