@@ -3,71 +3,11 @@ package gosql
 import (
 	"errors"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
 )
 
-var (
-	mb *MemoryBackend
-)
-
-func doSelect(mb Backend, slct *SelectStatement) (error, *Results) {
-	results, err := mb.Select(slct)
-	if err != nil {
-		return err, nil
-	}
-
-	if len(results.Rows) == 0 {
-		fmt.Println("(no results)")
-		return nil, nil
-	}
-
-	table := tablewriter.NewWriter(os.Stdout)
-	header := []string{}
-	for _, col := range results.Columns {
-		header = append(header, col.Name)
-	}
-	table.SetHeader(header)
-	table.SetAutoFormatHeaders(false)
-
-	rows := [][]string{}
-	for _, result := range results.Rows {
-		row := []string{}
-		for i, cell := range result {
-			typ := results.Columns[i].Type
-			s := ""
-			switch typ {
-			case IntType:
-				s = fmt.Sprintf("%d", cell.AsInt())
-			case TextType:
-				s = cell.AsText()
-			case BoolType:
-				s = "true"
-				if !cell.AsBool() {
-					s = "false"
-				}
-			}
-
-			row = append(row, s)
-		}
-
-		rows = append(rows, row)
-	}
-
-	table.SetBorder(false)
-	table.AppendBulk(rows)
-	table.Render()
-
-	if len(rows) == 1 {
-		fmt.Println("(1 result)")
-	} else {
-		fmt.Printf("(%d results)\n", len(rows))
-	}
-
-	return nil, results
-}
+var mb *MemoryBackend
 
 func init() {
 	helpMessagesDisabled = true
