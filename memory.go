@@ -233,10 +233,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}
 
 	results := [][]Cell{}
-	columns := []struct {
-		Type ColumnType
-		Name string
-	}{}
+	columns := []ResultColumn{}
 
 	if slct.from == nil {
 		t = &table{}

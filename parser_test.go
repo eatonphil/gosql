@@ -52,7 +52,7 @@ func TestParseExpression(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fmt.Println("Testing: ", test.source)
+		fmt.Println("(Parser) Testing: ", test.source)
 		tokens, err := lex(test.source)
 		assert.Nil(t, err)
 
@@ -240,7 +240,7 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fmt.Println("Testing: ", test.source)
+		fmt.Println("(Parser) Testing: ", test.source)
 		ast, err := Parse(test.source)
 		assert.Nil(t, err, test.source)
 		assert.Equal(t, test.ast, ast, test.source)

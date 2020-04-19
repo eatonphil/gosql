@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+var (
+	helpMessagesDisabled = false
+)
+
 func tokenFromKeyword(k keyword) token {
 	return token{
 		kind:  keywordKind,
@@ -20,6 +24,11 @@ func tokenFromSymbol(s symbol) token {
 }
 
 func helpMessage(tokens []*token, cursor uint, msg string) {
+
+	if helpMessagesDisabled {
+		return
+	}
+
 	var c *token
 	if cursor+1 < uint(len(tokens)) {
 		c = tokens[cursor+1]

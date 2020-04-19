@@ -8,6 +8,19 @@ const (
 	BoolType
 )
 
+func (c ColumnType) String() string {
+	switch c {
+	case TextType:
+		return "TextType"
+	case IntType:
+		return "IntType"
+	case BoolType:
+		return "BoolType"
+	default:
+		return "Error"
+	}
+}
+
 type Cell interface {
 	AsText() string
 	AsInt() int32
@@ -15,11 +28,13 @@ type Cell interface {
 }
 
 type Results struct {
-	Columns []struct {
-		Type ColumnType
-		Name string
-	}
-	Rows [][]Cell
+	Columns []ResultColumn
+	Rows    [][]Cell
+}
+
+type ResultColumn struct {
+	Type ColumnType
+	Name string
 }
 
 type Backend interface {
