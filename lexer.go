@@ -30,6 +30,9 @@ const (
 	orKeyword     keyword = "or"
 	trueKeyword   keyword = "true"
 	falseKeyword  keyword = "false"
+	uniqueKeyword keyword = "unique"
+	indexKeyword  keyword = "index"
+	onKeyword     keyword = "on"
 )
 
 type symbol string
@@ -218,6 +221,9 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		asKeyword,
 		trueKeyword,
 		falseKeyword,
+		uniqueKeyword,
+		indexKeyword,
+		onKeyword,
 	}
 
 	var options []string

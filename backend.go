@@ -37,8 +37,23 @@ type ResultColumn struct {
 	Name string
 }
 
+type Index struct {
+	Name string
+	Exp string
+	Type string
+	Unique bool
+}
+
+type TableMetadata struct {
+	Name string
+	Columns []string
+	ColumnTypes []ColumnType
+	Indices []Index
+}
+
 type Backend interface {
 	CreateTable(*CreateTableStatement) error
 	Insert(*InsertStatement) error
 	Select(*SelectStatement) (*Results, error)
+	GetTables() []TableMetadata
 }

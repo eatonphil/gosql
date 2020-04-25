@@ -2,6 +2,7 @@ package gosql
 
 import (
 	"bytes"
+	"hash/maphash"
 	"encoding/binary"
 	"fmt"
 	"strconv"
@@ -44,14 +45,14 @@ func literalToMemoryCell(t *token) MemoryCell {
 		i, err := strconv.Atoi(t.value)
 		if err != nil {
 			fmt.Printf("Corrupted data [%s]: %s\n", t.value, err)
-			return MemoryCell(nil)
+			return nil
 		}
 
 		// TODO: handle bigint
 		err = binary.Write(buf, binary.BigEndian, int32(i))
 		if err != nil {
 			fmt.Printf("Corrupted data [%s]: %s\n", string(buf.Bytes()), err)
-			return MemoryCell(nil)
+			return nil
 		}
 		return buf.Bytes()
 	}
@@ -79,10 +80,123 @@ var (
 	falseMemoryCell = literalToMemoryCell(&falseToken)
 )
 
+type indexItem struct {
+	value MemoryCell
+	index uint
+}
+
+type index struct {
+	name string
+	exp expression
+	unique bool
+	mapping map[uint64][]indexItem
+	hashSeed maphash.Seed
+	typ string
+}
+
+func (i *index) hash(m MemoryCell) uint64 {
+	hasher := &maphash.Hash{}
+	hasher.SetSeed(i.hashSeed)
+	hasher.Write(m)
+	return hasher.Sum64()
+}
+
+func (i *index) processRow(t *table, rowIndex uint) {
+	indexValue, _, _, err := t.evaluateCell(rowIndex, i.exp)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	indexValueHash := i.hash(indexValue)
+
+	ii := indexItem{
+		value: indexValue,
+		index: rowIndex,
+	}
+	if _, ok := i.mapping[indexValueHash]; !ok {
+		i.mapping[indexValueHash] = []indexItem{ii}
+		return
+	}
+
+	i.mapping[indexValueHash] = append(i.mapping[indexValueHash], ii)
+}
+
+func (i *index) applicableValue(exp expression) *expression {
+	if exp.kind != binaryKind {
+		return nil
+	}
+
+	be := exp.binary
+	// Find the column and the value in the binary expression
+	columnExp := be.a
+	valueExp := be.b
+	if columnExp.generateCode() != i.exp.generateCode() {
+		columnExp = be.b
+		valueExp = be.a
+	}
+
+	if be.op.value != string(eqSymbol) {
+		fmt.Println("Only equality check supported")
+		return nil
+	}
+
+	if valueExp.kind != literalKind {
+		fmt.Println("Only equality checks on literals supported")
+		return nil
+	}
+
+	return &valueExp
+}
+
+func (i *index) newTableFromSubset(t *table, exp expression) *table {
+	valueExp := i.applicableValue(exp)
+	if valueExp == nil {
+		return t
+	}
+
+	value, _, _, err := createTable().evaluateCell(0, *valueExp)
+	if err != nil {
+		fmt.Println(err)
+		return t
+	}
+	hash := i.hash(value)
+	items, ok := i.mapping[hash]
+	if !ok {
+		return t
+	}
+
+	newT := createTable()
+	newT.columns = t.columns
+	newT.columnTypes = t.columnTypes
+	newT.indices = t.indices
+	newT.rows = [][]MemoryCell{}
+
+	for _, item := range items {
+		if item.value.equals(value) {
+			newT.rows = append(newT.rows, t.rows[item.index])
+		}
+	}
+
+	return newT
+}
+
 type table struct {
+	name string
 	columns     []string
 	columnTypes []ColumnType
 	rows        [][]MemoryCell
+	indices []*index
+}
+
+func createTable() *table {
+	return &table{
+		name: "?tmp?",
+		columns: nil,
+		columnTypes: nil,
+		rows: nil,
+		indices: []*index{},
+	}
 }
 
 func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (MemoryCell, string, ColumnType, error) {
@@ -213,12 +327,60 @@ func (t *table) evaluateCell(rowIndex uint, exp expression) (MemoryCell, string,
 	}
 }
 
+type indexAndExpression struct {
+	i *index
+	e expression
+}
+
+func (t *table) getApplicableIndices(where *expression) []indexAndExpression  {
+	var linearizeExpressions func (where *expression, exps []expression) ([]expression, bool)
+	linearizeExpressions = func (where *expression, exps []expression) ([]expression, bool) {
+		if where == nil || where.kind != binaryKind {
+			return nil, true
+		}
+		
+		if where.binary.op.value == string(orKeyword) {
+			return nil, false
+		}
+
+		if where.binary.op.value == string(andKeyword) {
+			exps, allAnd := linearizeExpressions(&where.binary.a, exps)
+			if !allAnd {
+				return nil, false
+			}
+
+			return linearizeExpressions(&where.binary.b, exps)
+		}
+
+		return append(exps, *where), true
+	}
+
+	exps, allAnd := linearizeExpressions(where, []expression{})
+	if !allAnd {
+		return nil
+	}
+
+	iAndE := []indexAndExpression{}
+	for _, exp := range exps {
+		for _, index := range t.indices {
+			if index.applicableValue(exp) == nil {
+				iAndE = append(iAndE, indexAndExpression{
+					i: index,
+					e: exp,
+				})
+			}
+		}
+	}
+
+	return iAndE
+}
+
 type MemoryBackend struct {
 	tables map[string]*table
 }
 
 func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
-	t := &table{}
+	t := createTable()
 
 	if slct.from != nil && slct.from.table != nil {
 		var ok bool
@@ -236,11 +398,11 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	columns := []ResultColumn{}
 
 	if slct.from == nil {
-		t = &table{}
+		t = createTable()
 		t.rows = [][]MemoryCell{{}}
 	}
 
-	// handle SELECT *
+	// Expand SELECT * at the AST level into a SELECT on all columns
 	finalItems := []*selectItem{}
 	for _, item := range *slct.item {
 		if item.asterisk {
@@ -265,6 +427,13 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		} else {
 			finalItems = append(finalItems, item)
 		}
+	}
+
+	for _, iAndE := range t.getApplicableIndices(slct.where) {
+		index := iAndE.i
+		exp := iAndE.e
+		fmt.Println("Using index:", index.name)
+		t = index.newTableFromSubset(t, exp)
 	}
 
 	for i := range t.rows {
@@ -326,14 +495,14 @@ func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 		return ErrMissingValues
 	}
 
-	for _, value := range *inst.values {
-		if value.kind != literalKind {
+	for _, valueNode := range *inst.values {
+		if valueNode.kind != literalKind {
 			fmt.Println("Skipping non-literal.")
 			continue
 		}
 
-		emptyTable := &table{}
-		value, _, _, err := emptyTable.evaluateCell(0, *value)
+		emptyTable := createTable()
+		value, _, _, err := emptyTable.evaluateCell(0, *valueNode)
 		if err != nil {
 			return err
 		}
@@ -342,14 +511,23 @@ func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 	}
 
 	t.rows = append(t.rows, row)
+
+	for _, index := range t.indices {
+		index.processRow(t, uint(len(t.rows)-1))
+	}
+
 	return nil
 }
 
 func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
-	t := table{}
-	mb.tables[crt.name.value] = &t
-	if crt.cols == nil {
+	if _, ok := mb.tables[crt.name.value]; ok {
+		return ErrTableAlreadyExists
+	}
 
+	t := createTable()
+	t.name = crt.name.value
+	mb.tables[t.name] = t
+	if crt.cols == nil {
 		return nil
 	}
 
@@ -374,12 +552,63 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 	return nil
 }
 
+func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
+	table, ok := mb.tables[ci.table.value]
+	if !ok {
+		return ErrTableDoesNotExist
+	}
+
+	for _, index := range table.indices {
+		if index.name == ci.name.value {
+			return ErrIndexAlreadyExists
+		}
+	}
+
+	index := &index{
+		exp: ci.exp,
+		unique: ci.unique,
+		name: ci.name.value,
+		mapping: map[uint64][]indexItem{},
+		hashSeed: maphash.MakeSeed(),
+		typ: "hash",
+	}
+	table.indices = append(table.indices, index)
+
+	for i := range table.rows {
+		index.processRow(table, uint(i))
+	}
+
+	return nil
+}
+
 func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
 	if _, ok := mb.tables[dt.name.value]; ok {
 		delete(mb.tables, dt.name.value)
 		return nil
 	}
 	return ErrTableDoesNotExist
+}
+
+func (mb *MemoryBackend) GetTables() []TableMetadata {
+	tms := []TableMetadata{}
+	for name, t := range mb.tables {
+		tm := TableMetadata{}
+		tm.Name = name
+		tm.Columns = t.columns
+		tm.ColumnTypes = t.columnTypes
+
+		for _, i := range t.indices {
+			tm.Indices = append(tm.Indices, Index{
+				Name: i.name,
+				Type: i.typ,
+				Exp: i.exp.generateCode(),
+			})
+		}
+
+		tms = append(tms, tm)
+	}
+
+	return tms
 }
 
 func NewMemoryBackend() *MemoryBackend {

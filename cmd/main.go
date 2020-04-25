@@ -68,6 +68,70 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 	return nil
 }
 
+func debugTable(b gosql.Backend, name string) {
+	// psql behavior is to display all if no name is specified.
+	if name == "" {
+		debugTables(b)
+		return
+	}
+
+	var tm *gosql.TableMetadata = nil
+	for _, t := range b.GetTables() {
+		if t.Name == name {
+			tm = &t
+		}
+	}
+
+	if tm == nil {
+		fmt.Printf(`Did not find any relation named "%s".\n`, name)
+		return
+	}
+
+	fmt.Printf("Table \"%s\"\n", name)
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Column", "Type"})
+	table.SetAutoFormatHeaders(false)
+	table.SetBorder(false)
+
+	rows := [][]string{}
+	for i, column := range tm.Columns {
+		typeString := "integer"
+		switch tm.ColumnTypes[i] {
+		case gosql.TextType:
+			typeString = "text"
+		case gosql.BoolType:
+			typeString = "boolean"
+		}
+		rows = append(rows, []string{column, typeString})
+	}
+
+	table.AppendBulk(rows)
+	table.Render()
+
+	if len(tm.Indices) > 0 {
+		fmt.Println("Indexes:")
+	}
+
+	for _, index := range tm.Indices {
+		fmt.Printf("\t\"%s\" %s (%s)\n", index.Name, index.Type, index.Exp)
+	}
+
+	fmt.Println("")
+}
+
+func debugTables(b gosql.Backend) {
+	tables := b.GetTables()
+	if len(tables) == 0 {
+		fmt.Println("Did not find any relations.")
+		return
+	}
+
+	for _, t := range tables {
+		debugTable(b, t.Name)
+	}
+}
+
 func main() {
 	mb := gosql.NewMemoryBackend()
 
@@ -101,9 +165,20 @@ repl:
 			continue repl
 		}
 
-		trimmedLine := strings.TrimRight(line, " ")
-		if trimmedLine == "quit" || trimmedLine == "exit" || strings.TrimLeft(trimmedLine, " ") == "\\q" {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "quit" || trimmed == "exit" || trimmed == "\\q" {
 			break
+		}
+
+		if trimmed == "\\dt" {
+			debugTables(mb)
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "\\d") {
+			name := strings.TrimSpace(trimmed[len("\\d"):])
+			debugTable(mb, name)
+			continue
 		}
 
 		parser := gosql.Parser{}
@@ -115,6 +190,12 @@ repl:
 
 		for _, stmt := range ast.Statements {
 			switch stmt.Kind {
+			case gosql.CreateIndexKind:
+				err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+				if err != nil {
+					fmt.Println("Error adding index on table", err)
+					continue repl
+				}
 			case gosql.CreateTableKind:
 				err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
 				if err != nil {
