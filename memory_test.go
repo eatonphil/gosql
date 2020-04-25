@@ -162,8 +162,8 @@ func TestCreateIndex(t *testing.T) {
 	assert.Nil(t, err)
 	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
 	assert.Nil(t, err)
-	assert.Equal(t, mb.tables["test"].indices[0].name, "foo")
-	assert.Equal(t, mb.tables["test"].indices[0].exp.generateCode(), `"x"`)
+	assert.Equal(t, mb.tables["test"].indexes[0].name, "foo")
+	assert.Equal(t, mb.tables["test"].indexes[0].exp.generateCode(), `"x"`)
 
 	// Second time, already exists
 	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
@@ -193,7 +193,7 @@ func TestDropTable(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestTableGetApplicableIndices(t *testing.T) {
+func TestTableGetApplicableIndexes(t *testing.T) {
 	mb := NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
@@ -209,7 +209,7 @@ func TestTableGetApplicableIndices(t *testing.T) {
 
 	tests := []struct {
 		where   string
-		indices []string
+		indexes []string
 	}{
 		{
 			"x = 2 OR y = 3",
@@ -233,10 +233,10 @@ func TestTableGetApplicableIndices(t *testing.T) {
 		ast, err = parser.Parse(fmt.Sprintf("SELECT * FROM test WHERE %s", test.where))
 		assert.Nil(t, err, test.where)
 		where := ast.Statements[0].SelectStatement.where
-		indices := []string{}
-		for _, i := range mb.tables["test"].getApplicableIndices(where) {
-			indices = append(indices, i.i.exp.generateCode())
+		indexes := []string{}
+		for _, i := range mb.tables["test"].getApplicableIndexes(where) {
+			indexes = append(indexes, i.i.exp.generateCode())
 		}
-		assert.Equal(t, test.indices, indices, test.where)
+		assert.Equal(t, test.indexes, indexes, test.where)
 	}
 }

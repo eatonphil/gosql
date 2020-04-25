@@ -109,11 +109,11 @@ func debugTable(b gosql.Backend, name string) {
 	table.AppendBulk(rows)
 	table.Render()
 
-	if len(tm.Indices) > 0 {
+	if len(tm.Indexes) > 0 {
 		fmt.Println("Indexes:")
 	}
 
-	for _, index := range tm.Indices {
+	for _, index := range tm.Indexes {
 		fmt.Printf("\t\"%s\" %s (%s)\n", index.Name, index.Type, index.Exp)
 	}
 

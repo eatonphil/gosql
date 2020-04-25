@@ -174,7 +174,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 	newT := createTable()
 	newT.columns = t.columns
 	newT.columnTypes = t.columnTypes
-	newT.indices = t.indices
+	newT.indexes = t.indexes
 	newT.rows = [][]MemoryCell{}
 
 	for _, item := range items {
@@ -191,7 +191,7 @@ type table struct {
 	columns     []string
 	columnTypes []ColumnType
 	rows        [][]MemoryCell
-	indices     []*index
+	indexes     []*index
 }
 
 func createTable() *table {
@@ -200,7 +200,7 @@ func createTable() *table {
 		columns:     nil,
 		columnTypes: nil,
 		rows:        nil,
-		indices:     []*index{},
+		indexes:     []*index{},
 	}
 }
 
@@ -337,7 +337,7 @@ type indexAndExpression struct {
 	e expression
 }
 
-func (t *table) getApplicableIndices(where *expression) []indexAndExpression {
+func (t *table) getApplicableIndexes(where *expression) []indexAndExpression {
 	var linearizeExpressions func(where *expression, exps []expression) []expression
 	linearizeExpressions = func(where *expression, exps []expression) []expression {
 		if where == nil || where.kind != binaryKind {
@@ -360,7 +360,7 @@ func (t *table) getApplicableIndices(where *expression) []indexAndExpression {
 
 	iAndE := []indexAndExpression{}
 	for _, exp := range exps {
-		for _, index := range t.indices {
+		for _, index := range t.indexes {
 			if index.applicableValue(exp) != nil {
 				iAndE = append(iAndE, indexAndExpression{
 					i: index,
@@ -427,7 +427,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		}
 	}
 
-	for _, iAndE := range t.getApplicableIndices(slct.where) {
+	for _, iAndE := range t.getApplicableIndexes(slct.where) {
 		index := iAndE.i
 		exp := iAndE.e
 		t = index.newTableFromSubset(t, exp)
@@ -509,7 +509,7 @@ func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 
 	t.rows = append(t.rows, row)
 
-	for _, index := range t.indices {
+	for _, index := range t.indexes {
 		index.processRow(t, uint(len(t.rows)-1))
 	}
 
@@ -555,7 +555,7 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 		return ErrTableDoesNotExist
 	}
 
-	for _, index := range table.indices {
+	for _, index := range table.indexes {
 		if index.name == ci.name.value {
 			return ErrIndexAlreadyExists
 		}
@@ -569,7 +569,7 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 		hashSeed: maphash.MakeSeed(),
 		typ:      "hash",
 	}
-	table.indices = append(table.indices, index)
+	table.indexes = append(table.indexes, index)
 
 	for i := range table.rows {
 		index.processRow(table, uint(i))
@@ -594,8 +594,8 @@ func (mb *MemoryBackend) GetTables() []TableMetadata {
 		tm.Columns = t.columns
 		tm.ColumnTypes = t.columnTypes
 
-		for _, i := range t.indices {
-			tm.Indices = append(tm.Indices, Index{
+		for _, i := range t.indexes {
+			tm.Indexes = append(tm.Indexes, Index{
 				Name: i.name,
 				Type: i.typ,
 				Exp:  i.exp.generateCode(),

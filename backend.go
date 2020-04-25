@@ -48,7 +48,7 @@ type TableMetadata struct {
 	Name        string
 	Columns     []string
 	ColumnTypes []ColumnType
-	Indices     []Index
+	Indexes     []Index
 }
 
 type Backend interface {
