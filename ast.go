@@ -1,6 +1,9 @@
 package gosql
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type expressionKind uint
 
@@ -28,7 +31,15 @@ type expression struct {
 func (e expression) generateCode() string {
 	switch e.kind {
 	case literalKind:
-		return fmt.Sprintf(e.literal.value)
+		switch e.literal.kind {
+		case identifierKind:
+			return fmt.Sprintf("\"%s\"", e.literal.value)
+		case stringKind:
+			return fmt.Sprintf("'%s'", e.literal.value)
+		default:
+			return fmt.Sprintf(e.literal.value)
+		}
+
 	case binaryKind:
 		return e.binary.generateCode()
 	}
@@ -54,6 +65,33 @@ type SelectStatement struct {
 	where *expression
 }
 
+func (ss SelectStatement) GenerateCode() string {
+	item := []string{}
+	for _, i := range *ss.item {
+		s := "\t*"
+		if !i.asterisk {
+			s = "\t" + i.exp.generateCode()
+
+			if i.as != nil {
+				s = fmt.Sprintf("\t%s AS \"%s\"", s, i.as.value)
+			}
+		}
+		item = append(item, s)
+	}
+
+	from := ""
+	if ss.from != nil {
+		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.table.value)
+	}
+
+	where := ""
+	if ss.where != nil {
+		where = fmt.Sprintf("\nWHERE\n\t%s", ss.where.generateCode())
+	}
+
+	return fmt.Sprintf("SELECT\n%s%s%s;", strings.Join(item, ",\n"), from, where)
+}
+
 type columnDefinition struct {
 	name     token
 	datatype token
@@ -64,6 +102,14 @@ type CreateTableStatement struct {
 	cols *[]*columnDefinition
 }
 
+func (cts CreateTableStatement) GenerateCode() string {
+	cols := []string{}
+	for _, col := range *cts.cols {
+		cols = append(cols, fmt.Sprintf("\t%s %s", col.name.value, col.datatype.value))
+	}
+	return fmt.Sprintf("CREATE TABLE \"%s\" (\n%s\n);", cts.name.value, strings.Join(cols, ",\n"))
+}
+
 type CreateIndexStatement struct {
 	name   token
 	unique bool
@@ -71,14 +117,30 @@ type CreateIndexStatement struct {
 	exp    expression
 }
 
+func (cis CreateIndexStatement) GenerateCode() string {
+	return fmt.Sprintf("CREATE INDEX \"%s\" ON \"%s\" (%s);", cis.name.value, cis.table.value, cis.exp.generateCode())
+}
+
 type DropTableStatement struct {
 	name token
+}
+
+func (dts DropTableStatement) GenerateCode() string {
+	return fmt.Sprintf("DROP TABLE \"%s\";", dts.name.value)
 }
 
 type InsertStatement struct {
 	table  token
 	cols   *[]*identifier
 	values *[]*expression
+}
+
+func (is InsertStatement) GenerateCode() string {
+	values := []string{}
+	for _, exp := range *is.values {
+		values = append(values, exp.generateCode())
+	}
+	return fmt.Sprintf("INSERT INTO \"%s\" VALUES (%s);", is.table.value, strings.Join(values, ", "))
 }
 
 type AstKind uint
@@ -98,6 +160,23 @@ type Statement struct {
 	DropTableStatement   *DropTableStatement
 	InsertStatement      *InsertStatement
 	Kind                 AstKind
+}
+
+func (s Statement) GenerateCode() string {
+	switch s.Kind {
+	case SelectKind:
+		return s.SelectStatement.GenerateCode()
+	case CreateTableKind:
+		return s.CreateTableStatement.GenerateCode()
+	case CreateIndexKind:
+		return s.CreateIndexStatement.GenerateCode()
+	case DropTableKind:
+		return s.DropTableStatement.GenerateCode()
+	case InsertKind:
+		return s.InsertStatement.GenerateCode()
+	}
+
+	return "?unknown?"
 }
 
 type Ast struct {

@@ -136,6 +136,11 @@ func (i *index) applicableValue(exp expression) *expression {
 		valueExp = be.a
 	}
 
+	// Neither side is applicable, return nil
+	if columnExp.generateCode() != i.exp.generateCode() {
+		return nil
+	}
+
 	if be.op.value != string(eqSymbol) {
 		fmt.Println("Only equality check supported")
 		return nil
@@ -333,32 +338,25 @@ type indexAndExpression struct {
 }
 
 func (t *table) getApplicableIndices(where *expression) []indexAndExpression {
-	var linearizeExpressions func(where *expression, exps []expression) ([]expression, bool)
-	linearizeExpressions = func(where *expression, exps []expression) ([]expression, bool) {
+	var linearizeExpressions func(where *expression, exps []expression) []expression
+	linearizeExpressions = func(where *expression, exps []expression) []expression {
 		if where == nil || where.kind != binaryKind {
-			return nil, true
+			return exps
 		}
 
 		if where.binary.op.value == string(orKeyword) {
-			return nil, false
+			return exps
 		}
 
 		if where.binary.op.value == string(andKeyword) {
-			exps, allAnd := linearizeExpressions(&where.binary.a, exps)
-			if !allAnd {
-				return nil, false
-			}
-
+			exps := linearizeExpressions(&where.binary.a, exps)
 			return linearizeExpressions(&where.binary.b, exps)
 		}
 
-		return append(exps, *where), true
+		return append(exps, *where)
 	}
 
-	exps, allAnd := linearizeExpressions(where, []expression{})
-	if !allAnd {
-		return nil
-	}
+	exps := linearizeExpressions(where, []expression{})
 
 	iAndE := []indexAndExpression{}
 	for _, exp := range exps {

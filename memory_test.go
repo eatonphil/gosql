@@ -99,7 +99,6 @@ func TestSelect(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fmt.Println("(Memory) Testing:", test.query)
 		ast, err = parser.Parse(test.query)
 		assert.Nil(t, err)
 		assert.NotEqual(t, ast, nil)
@@ -112,7 +111,6 @@ func TestSelect(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	fmt.Println("(Memory) Testing: INSERT INTO test VALUES(100, 200, 300)")
 	mb = NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
@@ -136,20 +134,43 @@ func TestInsert(t *testing.T) {
 }
 
 func TestCreateTable(t *testing.T) {
-	fmt.Println("(Memory) Testing: CREATE TABLE test(x INT, y INT, z INT)")
 	mb = NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
 	ast, err := parser.Parse("CREATE TABLE test(x INT, y INT, z INT)")
 	assert.Nil(t, err)
-	assert.NotEqual(t, ast, nil)
-
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
 	assert.Nil(t, err)
+	assert.Equal(t, mb.tables["test"].name, "test")
+	assert.Equal(t, mb.tables["test"].columns, []string{"x", "y", "z"})
+
+	// Second time, already exists
+	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	assert.Equal(t, ErrTableAlreadyExists, err)
+}
+
+func TestCreateIndex(t *testing.T) {
+	mb = NewMemoryBackend()
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("CREATE TABLE test(x INT, y INT, z INT)")
+	assert.Nil(t, err)
+	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	assert.Nil(t, err)
+
+	ast, err = parser.Parse("CREATE INDEX foo ON test (x);")
+	assert.Nil(t, err)
+	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+	assert.Nil(t, err)
+	assert.Equal(t, mb.tables["test"].indices[0].name, "foo")
+	assert.Equal(t, mb.tables["test"].indices[0].exp.generateCode(), `"x"`)
+
+	// Second time, already exists
+	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+	assert.Equal(t, ErrIndexAlreadyExists, err)
 }
 
 func TestDropTable(t *testing.T) {
-	fmt.Println("(Memory) Testing: DROP TABLE test")
 	mb = NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
@@ -170,4 +191,52 @@ func TestDropTable(t *testing.T) {
 	assert.NotEqual(t, ast, nil)
 	err = mb.DropTable(ast.Statements[0].DropTableStatement)
 	assert.Nil(t, err)
+}
+
+func TestTableGetApplicableIndices(t *testing.T) {
+	mb := NewMemoryBackend()
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("CREATE TABLE test (x INT, y INT);")
+	assert.Nil(t, err)
+	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	assert.Nil(t, err)
+
+	ast, err = parser.Parse("CREATE INDEX x_idx ON test (x);")
+	assert.Nil(t, err)
+	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+	assert.Nil(t, err)
+
+	tests := []struct {
+		where   string
+		indices []string
+	}{
+		{
+			"x = 2 OR y = 3",
+			[]string{},
+		},
+		{
+			"x = 2",
+			[]string{`"x"`},
+		},
+		{
+			"x = 2 AND y = 3",
+			[]string{`"x"`},
+		},
+		{
+			"x = 2 AND (y = 3 OR y = 5)",
+			[]string{`"x"`},
+		},
+	}
+
+	for _, test := range tests {
+		ast, err = parser.Parse(fmt.Sprintf("SELECT * FROM test WHERE %s", test.where))
+		assert.Nil(t, err, test.where)
+		where := ast.Statements[0].SelectStatement.where
+		indices := []string{}
+		for _, i := range mb.tables["test"].getApplicableIndices(where) {
+			indices = append(indices, i.i.exp.generateCode())
+		}
+		assert.Equal(t, test.indices, indices, test.where)
+	}
 }

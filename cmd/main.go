@@ -165,6 +165,8 @@ repl:
 			continue repl
 		}
 
+		parser := gosql.Parser{}
+
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "quit" || trimmed == "exit" || trimmed == "\\q" {
 			break
@@ -181,7 +183,12 @@ repl:
 			continue
 		}
 
-		parser := gosql.Parser{}
+		parseOnly := false
+		if strings.HasPrefix(trimmed, "\\p") {
+			line = strings.TrimSpace(trimmed[len("\\p"):])
+			parseOnly = true
+		}
+
 		ast, err := parser.Parse(line)
 		if err != nil {
 			fmt.Println("Error while parsing:", err)
@@ -189,6 +196,11 @@ repl:
 		}
 
 		for _, stmt := range ast.Statements {
+			if parseOnly {
+				fmt.Println(stmt.GenerateCode())
+				continue
+			}
+
 			switch stmt.Kind {
 			case gosql.CreateIndexKind:
 				err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)

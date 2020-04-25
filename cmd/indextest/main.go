@@ -20,7 +20,8 @@ func doInsert(mb gosql.Backend) {
 	parser := gosql.Parser{}
 	for i := 0; i < inserts; i++ {
 		lastId = r.Intn(inserts * 10)
-		ast, err := parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d, 'Test%d')", lastId, i))
+		ast, err := parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d, 'Test%d', '%d West Main St.', %d, %d)", lastId, i, i, 6-r.Intn(2), lastId))
+		ast, err = parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d)", lastId))
 		if err != nil {
 			panic(err)
 		}
@@ -71,7 +72,8 @@ func main() {
 	}
 
 	parser := gosql.Parser{}
-	ast, err := parser.Parse("CREATE TABLE users (id INT, name TEXT); CREATE INDEX id_idx ON users (id);")
+	// , name TEXT, location TEXT, height INT, externalId INT
+	ast, err := parser.Parse("CREATE TABLE users (id INT); CREATE INDEX id_idx ON users (id);")
 	if err != nil {
 		panic(err)
 	}
@@ -87,13 +89,16 @@ func main() {
 	}
 	fmt.Printf("Inserting %d rows%s\n", inserts, indexingString)
 
+	perf("INSERT", mb, doInsert)
+
 	if index {
-		err = mb.CreateIndex(ast.Statements[1].CreateIndexStatement)
-		if err != nil {
-			panic(err)
-		}
+		perf("CREATE INDEX", mb, func(b gosql.Backend) {
+			err = mb.CreateIndex(ast.Statements[1].CreateIndexStatement)
+			if err != nil {
+				panic(err)
+			}
+		})
 	}
 
-	perf("INSERT", mb, doInsert)
 	perf("SELECT", mb, doSelect)
 }
