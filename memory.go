@@ -2,9 +2,9 @@ package gosql
 
 import (
 	"bytes"
-	"hash/maphash"
 	"encoding/binary"
 	"fmt"
+	"hash/maphash"
 	"strconv"
 )
 
@@ -86,12 +86,12 @@ type indexItem struct {
 }
 
 type index struct {
-	name string
-	exp expression
-	unique bool
-	mapping map[uint64][]indexItem
+	name     string
+	exp      expression
+	unique   bool
+	mapping  map[uint64][]indexItem
 	hashSeed maphash.Seed
-	typ string
+	typ      string
 }
 
 func (i *index) hash(m MemoryCell) uint64 {
@@ -182,20 +182,20 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 }
 
 type table struct {
-	name string
+	name        string
 	columns     []string
 	columnTypes []ColumnType
 	rows        [][]MemoryCell
-	indices []*index
+	indices     []*index
 }
 
 func createTable() *table {
 	return &table{
-		name: "?tmp?",
-		columns: nil,
+		name:        "?tmp?",
+		columns:     nil,
 		columnTypes: nil,
-		rows: nil,
-		indices: []*index{},
+		rows:        nil,
+		indices:     []*index{},
 	}
 }
 
@@ -332,13 +332,13 @@ type indexAndExpression struct {
 	e expression
 }
 
-func (t *table) getApplicableIndices(where *expression) []indexAndExpression  {
-	var linearizeExpressions func (where *expression, exps []expression) ([]expression, bool)
-	linearizeExpressions = func (where *expression, exps []expression) ([]expression, bool) {
+func (t *table) getApplicableIndices(where *expression) []indexAndExpression {
+	var linearizeExpressions func(where *expression, exps []expression) ([]expression, bool)
+	linearizeExpressions = func(where *expression, exps []expression) ([]expression, bool) {
 		if where == nil || where.kind != binaryKind {
 			return nil, true
 		}
-		
+
 		if where.binary.op.value == string(orKeyword) {
 			return nil, false
 		}
@@ -363,7 +363,7 @@ func (t *table) getApplicableIndices(where *expression) []indexAndExpression  {
 	iAndE := []indexAndExpression{}
 	for _, exp := range exps {
 		for _, index := range t.indices {
-			if index.applicableValue(exp) == nil {
+			if index.applicableValue(exp) != nil {
 				iAndE = append(iAndE, indexAndExpression{
 					i: index,
 					e: exp,
@@ -432,7 +432,6 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	for _, iAndE := range t.getApplicableIndices(slct.where) {
 		index := iAndE.i
 		exp := iAndE.e
-		fmt.Println("Using index:", index.name)
 		t = index.newTableFromSubset(t, exp)
 	}
 
@@ -565,12 +564,12 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 	}
 
 	index := &index{
-		exp: ci.exp,
-		unique: ci.unique,
-		name: ci.name.value,
-		mapping: map[uint64][]indexItem{},
+		exp:      ci.exp,
+		unique:   ci.unique,
+		name:     ci.name.value,
+		mapping:  map[uint64][]indexItem{},
 		hashSeed: maphash.MakeSeed(),
-		typ: "hash",
+		typ:      "hash",
 	}
 	table.indices = append(table.indices, index)
 
@@ -601,7 +600,7 @@ func (mb *MemoryBackend) GetTables() []TableMetadata {
 			tm.Indices = append(tm.Indices, Index{
 				Name: i.name,
 				Type: i.typ,
-				Exp: i.exp.generateCode(),
+				Exp:  i.exp.generateCode(),
 			})
 		}
 

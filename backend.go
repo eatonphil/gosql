@@ -38,17 +38,17 @@ type ResultColumn struct {
 }
 
 type Index struct {
-	Name string
-	Exp string
-	Type string
+	Name   string
+	Exp    string
+	Type   string
 	Unique bool
 }
 
 type TableMetadata struct {
-	Name string
-	Columns []string
+	Name        string
+	Columns     []string
 	ColumnTypes []ColumnType
-	Indices []Index
+	Indices     []Index
 }
 
 type Backend interface {
