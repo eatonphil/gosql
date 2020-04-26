@@ -126,6 +126,10 @@ outer:
 			tokenFromKeyword(orKeyword),
 			tokenFromSymbol(eqSymbol),
 			tokenFromSymbol(neqSymbol),
+			tokenFromSymbol(ltSymbol),
+			tokenFromSymbol(lteSymbol),
+			tokenFromSymbol(gtSymbol),
+			tokenFromSymbol(gteSymbol),
 			tokenFromSymbol(concatSymbol),
 			tokenFromSymbol(plusSymbol),
 		}

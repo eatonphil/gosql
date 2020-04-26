@@ -45,8 +45,13 @@ const (
 	rightParenSymbol symbol = ")"
 	eqSymbol         symbol = "="
 	neqSymbol        symbol = "<>"
+	neqSymbol2       symbol = "!="
 	concatSymbol     symbol = "||"
 	plusSymbol       symbol = "+"
+	ltSymbol         symbol = "<"
+	lteSymbol        symbol = "<="
+	gtSymbol         symbol = ">"
+	gteSymbol        symbol = ">="
 )
 
 type tokenKind uint
@@ -80,11 +85,23 @@ func (t token) bindingPower() uint {
 		case eqSymbol:
 			fallthrough
 		case neqSymbol:
+			return 2
+
+		case ltSymbol:
 			fallthrough
+		case gtSymbol:
+			return 3
+
+		// For some reason these are grouped separately
+		case lteSymbol:
+			fallthrough
+		case gteSymbol:
+			return 4
+
 		case concatSymbol:
 			fallthrough
 		case plusSymbol:
-			return 3
+			return 5
 		}
 	}
 
@@ -170,6 +187,11 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	symbols := []symbol{
 		eqSymbol,
 		neqSymbol,
+		neqSymbol2,
+		ltSymbol,
+		lteSymbol,
+		gtSymbol,
+		gteSymbol,
 		concatSymbol,
 		plusSymbol,
 		commaSymbol,
@@ -193,6 +215,11 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 
 	cur.pointer = ic.pointer + uint(len(match))
 	cur.loc.col = ic.loc.col + uint(len(match))
+
+	// != is rewritten as <>: https://www.postgresql.org/docs/9.5/functions-comparison.html
+	if match == string(neqSymbol2) {
+		match = string(neqSymbol)
+	}
 
 	return &token{
 		value: match,

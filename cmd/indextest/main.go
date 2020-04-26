@@ -13,6 +13,7 @@ import (
 
 var inserts = 0
 var lastId = 0
+var firstId = 0
 
 func doInsert(mb gosql.Backend) {
 	source := rand.NewSource(time.Now().UnixNano())
@@ -20,8 +21,10 @@ func doInsert(mb gosql.Backend) {
 	parser := gosql.Parser{}
 	for i := 0; i < inserts; i++ {
 		lastId = r.Intn(inserts * 10)
-		ast, err := parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d, 'Test%d', '%d West Main St.', %d, %d)", lastId, i, i, 6-r.Intn(2), lastId))
-		ast, err = parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d)", lastId))
+		if i == 0 {
+			firstId = lastId
+		}
+		ast, err := parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d, %d)", lastId, i))
 		if err != nil {
 			panic(err)
 		}
@@ -35,14 +38,40 @@ func doInsert(mb gosql.Backend) {
 
 func doSelect(mb gosql.Backend) {
 	parser := gosql.Parser{}
-	ast, err := parser.Parse(fmt.Sprintf("SELECT * FROM users WHERE id = %d", lastId))
+	ast, err := parser.Parse(fmt.Sprintf("SELECT id, inc FROM users WHERE id = %d", lastId))
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = mb.Select(ast.Statements[0].SelectStatement)
+	r, err := mb.Select(ast.Statements[0].SelectStatement)
 	if err != nil {
 		panic(err)
+	}
+
+	if len(r.Rows) != 1 {
+		panic("Expected 1 row")
+	}
+
+	if int(r.Rows[0][1].AsInt()) != inserts - 1 {
+		panic(fmt.Sprintf("Bad row, got: %d", r.Rows[0][1].AsInt()))
+	}
+
+	ast, err = parser.Parse(fmt.Sprintf("SELECT id, inc FROM users WHERE id = %d", firstId))
+	if err != nil {
+		panic(err)
+	}
+
+	r, err = mb.Select(ast.Statements[0].SelectStatement)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(r.Rows) != 1 {
+		panic("Expected 1 row")
+	}
+
+	if int(r.Rows[0][1].AsInt()) != 0 {
+		panic(fmt.Sprintf("Bad row, got: %d", r.Rows[0][1].AsInt()))
 	}
 }
 
@@ -72,8 +101,7 @@ func main() {
 	}
 
 	parser := gosql.Parser{}
-	// , name TEXT, location TEXT, height INT, externalId INT
-	ast, err := parser.Parse("CREATE TABLE users (id INT); CREATE INDEX id_idx ON users (id);")
+	ast, err := parser.Parse("CREATE TABLE users (id INT, inc INT); CREATE INDEX id_idx ON users (id);")
 	if err != nil {
 		panic(err)
 	}

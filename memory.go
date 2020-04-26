@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"hash/maphash"
 	"strconv"
+
+	"github.com/petar/GoLLRB/llrb"
 )
 
 type MemoryCell []byte
@@ -80,25 +81,21 @@ var (
 	falseMemoryCell = literalToMemoryCell(&falseToken)
 )
 
-type indexItem struct {
+type treeItem struct {
 	value MemoryCell
 	index uint
 }
 
-type index struct {
-	name     string
-	exp      expression
-	unique   bool
-	mapping  map[uint64][]indexItem
-	hashSeed maphash.Seed
-	typ      string
+func (te treeItem) Less(than llrb.Item) bool {
+	return bytes.Compare(te.value, than.(treeItem).value) < 0
 }
 
-func (i *index) hash(m MemoryCell) uint64 {
-	hasher := &maphash.Hash{}
-	hasher.SetSeed(i.hashSeed)
-	hasher.Write(m)
-	return hasher.Sum64()
+type index struct {
+	name   string
+	exp    expression
+	unique bool
+	tree   *llrb.LLRB
+	typ    string
 }
 
 func (i *index) processRow(t *table, rowIndex uint) {
@@ -108,18 +105,10 @@ func (i *index) processRow(t *table, rowIndex uint) {
 		return
 	}
 
-	indexValueHash := i.hash(indexValue)
-
-	ii := indexItem{
+	i.tree.InsertNoReplace(treeItem{
 		value: indexValue,
 		index: rowIndex,
-	}
-	if _, ok := i.mapping[indexValueHash]; !ok {
-		i.mapping[indexValueHash] = []indexItem{ii}
-		return
-	}
-
-	i.mapping[indexValueHash] = append(i.mapping[indexValueHash], ii)
+	})
 }
 
 func (i *index) applicableValue(exp expression) *expression {
@@ -141,8 +130,15 @@ func (i *index) applicableValue(exp expression) *expression {
 		return nil
 	}
 
-	if be.op.value != string(eqSymbol) {
-		fmt.Println("Only equality check supported")
+	supportedChecks := []symbol{eqSymbol, neqSymbol, gtSymbol, gteSymbol, ltSymbol, lteSymbol}
+	supported := false
+	for _, sym := range supportedChecks {
+		if string(sym) == be.op.value {
+			supported = true
+			break
+		}
+	}
+	if !supported {
 		return nil
 	}
 
@@ -165,10 +161,66 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 		fmt.Println(err)
 		return t
 	}
-	hash := i.hash(value)
-	items, ok := i.mapping[hash]
-	if !ok {
-		return t
+
+	tiValue := treeItem{value: value}
+
+	indexes := []uint{}
+	switch symbol(exp.binary.op.value) {
+	case eqSymbol:
+		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
+			ti := i.(treeItem)
+			if bytes.Compare(ti.value, value) != 0 {
+				return false
+			}
+
+			indexes = append(indexes, ti.index)
+			return true
+		})
+	case neqSymbol:
+		i.tree.AscendGreaterOrEqual(llrb.Inf(-1), func(i llrb.Item) bool {
+			ti := i.(treeItem)
+			if bytes.Compare(ti.value, value) != 0 {
+				indexes = append(indexes, ti.index)
+			}
+
+			return true
+		})
+	case ltSymbol:
+		i.tree.DescendLessOrEqual(tiValue, func(i llrb.Item) bool {
+			ti := i.(treeItem)
+			if bytes.Compare(ti.value, value) < 0 {
+				indexes = append(indexes, ti.index)
+			}
+
+			return true
+		})
+	case lteSymbol:
+		i.tree.DescendLessOrEqual(tiValue, func(i llrb.Item) bool {
+			ti := i.(treeItem)
+			if bytes.Compare(ti.value, value) <= 0 {
+				indexes = append(indexes, ti.index)
+			}
+
+			return true
+		})
+	case gtSymbol:
+		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
+			ti := i.(treeItem)
+			if bytes.Compare(ti.value, value) > 0 {
+				indexes = append(indexes, ti.index)
+			}
+
+			return true
+		})
+	case gteSymbol:
+		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
+			ti := i.(treeItem)
+			if bytes.Compare(ti.value, value) >= 0 {
+				indexes = append(indexes, ti.index)
+			}
+
+			return true
+		})
 	}
 
 	newT := createTable()
@@ -177,10 +229,8 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 	newT.indexes = t.indexes
 	newT.rows = [][]MemoryCell{}
 
-	for _, item := range items {
-		if item.value.equals(value) {
-			newT.rows = append(newT.rows, t.rows[item.index])
-		}
+	for _, index := range indexes {
+		newT.rows = append(newT.rows, t.rows[index])
 	}
 
 	return newT
@@ -284,6 +334,46 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (MemoryCell, s
 
 			iValue := int(l.AsInt() + r.AsInt())
 			return literalToMemoryCell(&token{kind: numericKind, value: strconv.Itoa(iValue)}), "?column?", IntType, nil
+		case ltSymbol:
+			if lt != IntType || rt != IntType {
+				return nil, "", 0, ErrInvalidOperands
+			}
+
+			if l.AsInt() < r.AsInt() {
+				return trueMemoryCell, "?column?", BoolType, nil
+			}
+
+			return falseMemoryCell, "?column?", BoolType, nil
+		case lteSymbol:
+			if lt != IntType || rt != IntType {
+				return nil, "", 0, ErrInvalidOperands
+			}
+
+			if l.AsInt() <= r.AsInt() {
+				return trueMemoryCell, "?column?", BoolType, nil
+			}
+
+			return falseMemoryCell, "?column?", BoolType, nil
+		case gtSymbol:
+			if lt != IntType || rt != IntType {
+				return nil, "", 0, ErrInvalidOperands
+			}
+
+			if l.AsInt() > r.AsInt() {
+				return trueMemoryCell, "?column?", BoolType, nil
+			}
+
+			return falseMemoryCell, "?column?", BoolType, nil
+		case gteSymbol:
+			if lt != IntType || rt != IntType {
+				return nil, "", 0, ErrInvalidOperands
+			}
+
+			if l.AsInt() >= r.AsInt() {
+				return trueMemoryCell, "?column?", BoolType, nil
+			}
+
+			return falseMemoryCell, "?column?", BoolType, nil
 		default:
 			// TODO
 			break
@@ -562,12 +652,11 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 	}
 
 	index := &index{
-		exp:      ci.exp,
-		unique:   ci.unique,
-		name:     ci.name.value,
-		mapping:  map[uint64][]indexItem{},
-		hashSeed: maphash.MakeSeed(),
-		typ:      "hash",
+		exp:    ci.exp,
+		unique: ci.unique,
+		name:   ci.name.value,
+		tree:   llrb.New(),
+		typ:    "rbtree",
 	}
 	table.indexes = append(table.indexes, index)
 
