@@ -38,9 +38,10 @@ func (e expression) generateCode() string {
 
 type identifier expression
 
+// selectItem is a struct for the items selected in a Select Query
 type selectItem struct {
 	exp      *expression
-	asterisk bool
+	asterisk bool // for *
 	as       *token
 }
 
@@ -48,10 +49,11 @@ type fromItem struct {
 	table *token
 }
 
+// SelectStatement is a struct for SQL Select Statement.
 type SelectStatement struct {
-	item  *[]*selectItem
-	from  *fromItem
-	where *expression
+	item  *[]*selectItem // the selected items
+	from  *fromItem      // it contains the table name
+	where *expression    // expression that will be applied in where clause
 }
 
 type columnDefinition struct {
@@ -59,30 +61,39 @@ type columnDefinition struct {
 	datatype token
 }
 
+// CreateTableStatement is a struct for SQL Create Table Statement.
 type CreateTableStatement struct {
-	name token
-	cols *[]*columnDefinition
+	name token                // the name of the table
+	cols *[]*columnDefinition // the column definitions
 }
 
+// DropTableStatement represents a SQL Drop Table Statement
 type DropTableStatement struct {
-	name token
+	name token // the name of the table present in the statement
 }
 
+// InsertStatement represents a SQL Insert Into Statement
 type InsertStatement struct {
-	table  token
-	cols   *[]*identifier
-	values *[]*expression
+	table  token          // table name
+	cols   *[]*identifier // columns that'll contain data
+	values *[]*expression // corresponding values for the columns
 }
 
+// AstKind is used to categorize the Statements
 type AstKind uint
 
 const (
+	// SelectKind is for Select Statements
 	SelectKind AstKind = iota
+	// CreateTableKind is for Create Table Statements
 	CreateTableKind
+	// DropTableKind is for Drop Table Statements
 	DropTableKind
+	// InsertKind is for Insert Statements
 	InsertKind
 )
 
+// Statement represents a SQL statement
 type Statement struct {
 	SelectStatement      *SelectStatement
 	CreateTableStatement *CreateTableStatement
@@ -91,6 +102,7 @@ type Statement struct {
 	Kind                 AstKind
 }
 
+// Ast is the abstract syntax tree created by the lexers and parsers
 type Ast struct {
 	Statements []*Statement
 }

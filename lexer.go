@@ -5,11 +5,13 @@ import (
 	"strings"
 )
 
+// location stores the current location of the cursor in the statement
 type location struct {
 	line uint
 	col  uint
 }
 
+// keyword is the type for storing the reserved keywords of the SQL supported by the gosql
 type keyword string
 
 const (
@@ -32,6 +34,7 @@ const (
 	falseKeyword  keyword = "false"
 )
 
+// symbol is the type for storing the reserved symbols of the SQL supported by the gosql
 type symbol string
 
 const (
@@ -46,6 +49,7 @@ const (
 	plusSymbol       symbol = "+"
 )
 
+// tokenKind is a type for storing the kind/type of the token
 type tokenKind uint
 
 const (
@@ -57,6 +61,8 @@ const (
 	boolKind
 )
 
+// token is created after the lexical analysis is done for a statement. Once the lex process is over, it creates a slice
+// of the tokens. Basically, it converts the provided statement into a slice of tokens
 type token struct {
 	value string
 	kind  tokenKind
@@ -88,17 +94,23 @@ func (t token) bindingPower() uint {
 	return 0
 }
 
+func (t *token) equals(other *token) bool {
+	return t.value == other.value && t.kind == other.kind
+}
+
+// cursor indicates the current position of the lexer/tokenizer
 type cursor struct {
 	pointer uint
 	loc     location
 }
 
-func (t *token) equals(other *token) bool {
-	return t.value == other.value && t.kind == other.kind
-}
-
+// lexer is typedef for lex algorithms. The lex algorithms are based on the type of token that it wants to find.
+// For example, lexNumeric is a lexer/tokenizer for the tokens that are of numeric types.
 type lexer func(string, cursor) (*token, cursor, bool)
 
+// longestMatch traverses through the provided statement, source, and returns the option that matches. The traversal
+// starts from the position specified by the ic and the substrings of source, starting from ic index, are matched with
+// the options.
 func longestMatch(source string, ic cursor, options []string) string {
 	var value []byte
 	var skipList []int
@@ -144,6 +156,7 @@ func longestMatch(source string, ic cursor, options []string) string {
 	return match
 }
 
+// lexSymbol is a lexer algorithm for gosql's reserved symbols
 func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	c := source[ic.pointer]
 	cur := ic
@@ -198,6 +211,7 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	}, cur, true
 }
 
+// lexKeyword is a lexer algorithm for gosql's reserved keywords
 func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	cur := ic
 	keywords := []keyword{
@@ -245,6 +259,7 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	}, cur, true
 }
 
+// lexKeyword is a lexer algorithm for numeric lexemes.
 func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 	cur := ic
 
@@ -297,7 +312,6 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 				cur.pointer++
 				cur.loc.col++
 			}
-
 			continue
 		}
 
@@ -318,6 +332,11 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 	}, cur, true
 }
 
+// lexCharacterDelimited finds the next character token present in the source starting from the position provided by the
+// ic. Possible values for character token could be:
+// 	'This is a token'
+// 	'This token has an ' <- escaped character'
+// For the second example the delimiter was \'
 func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cursor, bool) {
 	cur := ic
 
@@ -346,11 +365,10 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 					loc:   ic.loc,
 					kind:  stringKind,
 				}, cur, true
-			} else {
-				value = append(value, delimiter)
-				cur.pointer++
-				cur.loc.col++
 			}
+			value = append(value, delimiter)
+			cur.pointer++
+			cur.loc.col++
 		}
 
 		value = append(value, c)
@@ -360,6 +378,7 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 	return nil, ic, false
 }
 
+// lexIdentifier is a lexer algorithm for identifiers present in the query.
 func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 	// Handle separately if is a double-quoted identifier
 	if token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
@@ -398,19 +417,29 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 	}
 
 	return &token{
-		// Unquoted dentifiers are case-insensitive
+		// Unquoted identifiers are case-insensitive
 		value: strings.ToLower(string(value)),
 		loc:   ic.loc,
 		kind:  identifierKind,
 	}, cur, true
 }
 
+// lexString is a lexer algorithm for strings present in the query.
 func lexString(source string, ic cursor) (*token, cursor, bool) {
 	return lexCharacterDelimited(source, ic, '\'')
 }
 
+// lex, for lexical analysis, returns a slice of tokens.
+// This process can be divided into following tasks:
+//
+// 1. Instantiating a cursor with pointing to the start of the string
+//
+// 2. Execute all the lexers in series.
+//
+// 3. If any of the lexer generate a token then add the token to the token slice, update the cursor and restart the
+// process from the new cursor location.
 func lex(source string) ([]*token, error) {
-	tokens := []*token{}
+	var tokens []*token
 	cur := cursor{}
 
 lex:

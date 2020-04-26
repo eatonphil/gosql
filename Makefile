@@ -6,3 +6,6 @@ test:
 
 vet:
 	go vet .
+
+lint:
+	golint ./...

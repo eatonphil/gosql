@@ -7,8 +7,12 @@ import (
 	"strconv"
 )
 
+// MemoryCell acts as the data unit of the Memory Backend.
+// Each row in the gosql database is represented by an array of MemoryCell and each row's column's data is stored in a
+// Memory Cell
 type MemoryCell []byte
 
+// AsInt retrieves the int32 value for the MemoryCell
 func (mc MemoryCell) AsInt() int32 {
 	var i int32
 	err := binary.Read(bytes.NewBuffer(mc), binary.BigEndian, &i)
@@ -20,14 +24,17 @@ func (mc MemoryCell) AsInt() int32 {
 	return i
 }
 
+// AsText retrieves the string value for the MemoryCell
 func (mc MemoryCell) AsText() string {
 	return string(mc)
 }
 
+// AsBool retrieves the bool value for the MemoryCell
 func (mc MemoryCell) AsBool() bool {
 	return len(mc) != 0
 }
 
+// equals compares two memory cells and returns true if both of them are equal
 func (mc MemoryCell) equals(b MemoryCell) bool {
 	// Seems verbose but need to make sure if one is nil, the
 	// comparison still fails quickly
@@ -63,9 +70,8 @@ func literalToMemoryCell(t *token) MemoryCell {
 	if t.kind == boolKind {
 		if t.value == "true" {
 			return []byte{1}
-		} else {
-			return MemoryCell(nil)
 		}
+		return MemoryCell(nil)
 	}
 
 	return nil
@@ -213,10 +219,13 @@ func (t *table) evaluateCell(rowIndex uint, exp expression) (MemoryCell, string,
 	}
 }
 
+// MemoryBackend is an implementation of the Backend interface.
+// This implementations is a gosql server that keeps the DB data in the memory.
 type MemoryBackend struct {
 	tables map[string]*table
 }
 
+// Select fetches the rows from the table that match the where clause criteria
 func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	t := &table{}
 
@@ -310,6 +319,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}, nil
 }
 
+// Insert appends a new row inside the Table. The table name is present in the insert statement.
 func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 	t, ok := mb.tables[inst.table.value]
 	if !ok {
@@ -345,6 +355,7 @@ func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 	return nil
 }
 
+// CreateTable creates a new table in the Memory Backend
 func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 	t := table{}
 	mb.tables[crt.name.value] = &t
@@ -374,6 +385,7 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 	return nil
 }
 
+// DropTable removes or drop the table from the Memory backend
 func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
 	if _, ok := mb.tables[dt.name.value]; ok {
 		delete(mb.tables, dt.name.value)
@@ -382,6 +394,7 @@ func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
 	return ErrTableDoesNotExist
 }
 
+// NewMemoryBackend is the constructor for the Memory backend
 func NewMemoryBackend() *MemoryBackend {
 	return &MemoryBackend{
 		tables: map[string]*table{},

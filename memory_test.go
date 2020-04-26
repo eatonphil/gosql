@@ -36,8 +36,8 @@ func TestSelect(t *testing.T) {
 	yCol := ResultColumn{IntType, "y"}
 	zCol := ResultColumn{BoolType, "z"}
 
-	tests := []struct{
-		query string
+	tests := []struct {
+		query   string
 		results Results
 	}{
 		{
