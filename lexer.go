@@ -13,26 +13,28 @@ type location struct {
 type keyword string
 
 const (
-	selectKeyword keyword = "select"
-	fromKeyword   keyword = "from"
-	asKeyword     keyword = "as"
-	tableKeyword  keyword = "table"
-	createKeyword keyword = "create"
-	dropKeyword   keyword = "drop"
-	insertKeyword keyword = "insert"
-	intoKeyword   keyword = "into"
-	valuesKeyword keyword = "values"
-	intKeyword    keyword = "int"
-	textKeyword   keyword = "text"
-	boolKeyword   keyword = "boolean"
-	whereKeyword  keyword = "where"
-	andKeyword    keyword = "and"
-	orKeyword     keyword = "or"
-	trueKeyword   keyword = "true"
-	falseKeyword  keyword = "false"
-	uniqueKeyword keyword = "unique"
-	indexKeyword  keyword = "index"
-	onKeyword     keyword = "on"
+	selectKeyword     keyword = "select"
+	fromKeyword       keyword = "from"
+	asKeyword         keyword = "as"
+	tableKeyword      keyword = "table"
+	createKeyword     keyword = "create"
+	dropKeyword       keyword = "drop"
+	insertKeyword     keyword = "insert"
+	intoKeyword       keyword = "into"
+	valuesKeyword     keyword = "values"
+	intKeyword        keyword = "int"
+	textKeyword       keyword = "text"
+	boolKeyword       keyword = "boolean"
+	whereKeyword      keyword = "where"
+	andKeyword        keyword = "and"
+	orKeyword         keyword = "or"
+	trueKeyword       keyword = "true"
+	falseKeyword      keyword = "false"
+	uniqueKeyword     keyword = "unique"
+	indexKeyword      keyword = "index"
+	onKeyword         keyword = "on"
+	primarykeyKeyword keyword = "primary key"
+	nullKeyword       keyword = "null"
 )
 
 type symbol string
@@ -63,6 +65,7 @@ const (
 	stringKind
 	numericKind
 	boolKind
+	nullKind
 )
 
 type token struct {
@@ -251,6 +254,8 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		uniqueKeyword,
 		indexKeyword,
 		onKeyword,
+		primarykeyKeyword,
+		nullKeyword,
 	}
 
 	var options []string
@@ -269,6 +274,10 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	kind := keywordKind
 	if match == string(trueKeyword) || match == string(falseKeyword) {
 		kind = boolKind
+	}
+
+	if match == string(nullKeyword) {
+		kind = nullKind
 	}
 
 	return &token{

@@ -32,9 +32,9 @@ func TestSelect(t *testing.T) {
 
 	value100 := literalToMemoryCell(&token{"100", numericKind, location{}})
 	value200 := literalToMemoryCell(&token{"200", numericKind, location{}})
-	xCol := ResultColumn{IntType, "x"}
-	yCol := ResultColumn{IntType, "y"}
-	zCol := ResultColumn{BoolType, "z"}
+	xCol := ResultColumn{IntType, "x", false}
+	yCol := ResultColumn{IntType, "y", false}
+	zCol := ResultColumn{BoolType, "z", false}
 
 	tests := []struct {
 		query   string

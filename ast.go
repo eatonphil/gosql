@@ -93,8 +93,9 @@ func (ss SelectStatement) GenerateCode() string {
 }
 
 type columnDefinition struct {
-	name     token
-	datatype token
+	name       token
+	datatype   token
+	primaryKey bool
 }
 
 type CreateTableStatement struct {
@@ -111,10 +112,12 @@ func (cts CreateTableStatement) GenerateCode() string {
 }
 
 type CreateIndexStatement struct {
-	name   token
-	unique bool
-	table  token
-	exp    expression
+	name       token
+	unique     bool
+	notNull    bool
+	primaryKey bool
+	table      token
+	exp        expression
 }
 
 func (cis CreateIndexStatement) GenerateCode() string {

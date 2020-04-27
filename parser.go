@@ -70,7 +70,7 @@ func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token
 func (p Parser) parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, uint, bool) {
 	cursor := initialCursor
 
-	kinds := []tokenKind{identifierKind, numericKind, stringKind, boolKind}
+	kinds := []tokenKind{identifierKind, numericKind, stringKind, boolKind, nullKind}
 	for _, kind := range kinds {
 		t, newCursor, ok := p.parseTokenKind(tokens, cursor, kind)
 		if ok {
@@ -422,9 +422,16 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 		}
 		cursor = newCursor
 
+		primaryKey := false
+		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(primarykeyKeyword))
+		if ok {
+			primaryKey = true
+		}
+
 		cds = append(cds, &columnDefinition{
-			name:     *id,
-			datatype: *ty,
+			name:       *id,
+			datatype:   *ty,
+			primaryKey: primaryKey,
 		})
 	}
 

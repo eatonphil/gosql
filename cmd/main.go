@@ -36,20 +36,29 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 		row := []string{}
 		for i, cell := range result {
 			typ := results.Columns[i].Type
-			s := ""
+			r := ""
 			switch typ {
 			case gosql.IntType:
-				s = fmt.Sprintf("%d", cell.AsInt())
+				i := cell.AsInt()
+				if i != nil {
+					r = fmt.Sprintf("%d", *i)
+				}
 			case gosql.TextType:
-				s = cell.AsText()
+				s := cell.AsText()
+				if s != nil {
+					r = *s
+				}
 			case gosql.BoolType:
-				s = "true"
-				if !cell.AsBool() {
-					s = "false"
+				b := cell.AsBool()
+				if b != nil {
+					r = "t"
+					if !*b {
+						r = "f"
+					}
 				}
 			}
 
-			row = append(row, s)
+			row = append(row, r)
 		}
 
 		rows = append(rows, row)
@@ -90,20 +99,24 @@ func debugTable(b gosql.Backend, name string) {
 	fmt.Printf("Table \"%s\"\n", name)
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Column", "Type"})
+	table.SetHeader([]string{"Column", "Type", "Nullable"})
 	table.SetAutoFormatHeaders(false)
 	table.SetBorder(false)
 
 	rows := [][]string{}
-	for i, column := range tm.Columns {
+	for _, c := range tm.Columns {
 		typeString := "integer"
-		switch tm.ColumnTypes[i] {
+		switch c.Type {
 		case gosql.TextType:
 			typeString = "text"
 		case gosql.BoolType:
 			typeString = "boolean"
 		}
-		rows = append(rows, []string{column, typeString})
+		nullable := ""
+		if c.NotNull {
+			nullable = "not null"
+		}
+		rows = append(rows, []string{c.Name, typeString, nullable})
 	}
 
 	table.AppendBulk(rows)
@@ -114,7 +127,15 @@ func debugTable(b gosql.Backend, name string) {
 	}
 
 	for _, index := range tm.Indexes {
-		fmt.Printf("\t\"%s\" %s (%s)\n", index.Name, index.Type, index.Exp)
+		attributes := []string{}
+		if index.PrimaryKey {
+			attributes = append(attributes, "PRIMARY KEY")
+		} else if index.Unique {
+			attributes = append(attributes, "UNIQUE")
+		}
+		attributes = append(attributes, index.Type)
+
+		fmt.Printf("\t\"%s\" %s (%s)\n", index.Name, strings.Join(attributes, ", "), index.Exp)
 	}
 
 	fmt.Println("")
@@ -127,9 +148,22 @@ func debugTables(b gosql.Backend) {
 		return
 	}
 
+	fmt.Println("List of relations")
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Type"})
+	table.SetAutoFormatHeaders(false)
+	table.SetBorder(false)
+
+	rows := [][]string{}
 	for _, t := range tables {
-		debugTable(b, t.Name)
+		rows = append(rows, []string{t.Name, "table"})
 	}
+
+	table.AppendBulk(rows)
+	table.Render()
+
+	fmt.Println("")
 }
 
 func main() {
