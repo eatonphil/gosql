@@ -106,7 +106,12 @@ type CreateTableStatement struct {
 func (cts CreateTableStatement) GenerateCode() string {
 	cols := []string{}
 	for _, col := range *cts.cols {
-		cols = append(cols, fmt.Sprintf("\t%s %s", col.name.value, col.datatype.value))
+		modifiers := ""
+		if col.primaryKey {
+			modifiers += " " + "PRIMARY KEY"
+		}
+		spec := fmt.Sprintf("\t\"%s\" %s%s", col.name.value, strings.ToUpper(col.datatype.value), modifiers)
+		cols = append(cols, spec)
 	}
 	return fmt.Sprintf("CREATE TABLE \"%s\" (\n%s\n);", cts.name.value, strings.Join(cols, ",\n"))
 }
@@ -114,14 +119,17 @@ func (cts CreateTableStatement) GenerateCode() string {
 type CreateIndexStatement struct {
 	name       token
 	unique     bool
-	notNull    bool
 	primaryKey bool
 	table      token
 	exp        expression
 }
 
 func (cis CreateIndexStatement) GenerateCode() string {
-	return fmt.Sprintf("CREATE INDEX \"%s\" ON \"%s\" (%s);", cis.name.value, cis.table.value, cis.exp.generateCode())
+	unique := ""
+	if cis.unique {
+		unique = " UNIQUE"
+	}
+	return fmt.Sprintf("CREATE%s INDEX \"%s\" ON \"%s\" (%s);", unique, cis.name.value, cis.table.value, cis.exp.generateCode())
 }
 
 type DropTableStatement struct {

@@ -193,7 +193,7 @@ func TestDropTable(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestTableGetApplicableIndexes(t *testing.T) {
+func TestTable_GetApplicableIndexes(t *testing.T) {
 	mb := NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
@@ -239,4 +239,20 @@ func TestTableGetApplicableIndexes(t *testing.T) {
 		}
 		assert.Equal(t, test.indexes, indexes, test.where)
 	}
+}
+
+func TestLiteralToMemoryCell(t *testing.T) {
+	var i *int32 = nil
+	assert.Equal(t, i, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsInt())
+	assert.Equal(t, i, literalToMemoryCell(&token{value: "not an int", kind: numericKind}).AsInt())
+	assert.Equal(t, int32(2), *literalToMemoryCell(&token{value: "2", kind: numericKind}).AsInt())
+
+	var s *string = nil
+	assert.Equal(t, s, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsText())
+	assert.Equal(t, "foo", *literalToMemoryCell(&token{value: "foo", kind: stringKind}).AsText())
+
+	var b *bool = nil
+	assert.Equal(t, b, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsBool())
+	assert.Equal(t, true, *literalToMemoryCell(&token{value: "true", kind: boolKind}).AsBool())
+	assert.Equal(t, false, *literalToMemoryCell(&token{value: "false", kind: boolKind}).AsBool())
 }
