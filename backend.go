@@ -22,9 +22,9 @@ func (c ColumnType) String() string {
 }
 
 type Cell interface {
-	AsText() string
-	AsInt() int32
-	AsBool() bool
+	AsText() *string
+	AsInt() *int32
+	AsBool() *bool
 }
 
 type Results struct {
@@ -33,12 +33,28 @@ type Results struct {
 }
 
 type ResultColumn struct {
-	Type ColumnType
-	Name string
+	Type    ColumnType
+	Name    string
+	NotNull bool
+}
+
+type Index struct {
+	Name       string
+	Exp        string
+	Type       string
+	Unique     bool
+	PrimaryKey bool
+}
+
+type TableMetadata struct {
+	Name    string
+	Columns []ResultColumn
+	Indexes []Index
 }
 
 type Backend interface {
 	CreateTable(*CreateTableStatement) error
 	Insert(*InsertStatement) error
 	Select(*SelectStatement) (*Results, error)
+	GetTables() []TableMetadata
 }

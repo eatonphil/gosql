@@ -32,12 +32,12 @@ func TestSelect(t *testing.T) {
 
 	value100 := literalToMemoryCell(&token{"100", numericKind, location{}})
 	value200 := literalToMemoryCell(&token{"200", numericKind, location{}})
-	xCol := ResultColumn{IntType, "x"}
-	yCol := ResultColumn{IntType, "y"}
-	zCol := ResultColumn{BoolType, "z"}
+	xCol := ResultColumn{IntType, "x", false}
+	yCol := ResultColumn{IntType, "y", false}
+	zCol := ResultColumn{BoolType, "z", false}
 
-	tests := []struct{
-		query string
+	tests := []struct {
+		query   string
 		results Results
 	}{
 		{
@@ -99,7 +99,6 @@ func TestSelect(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fmt.Println("(Memory) Testing:", test.query)
 		ast, err = parser.Parse(test.query)
 		assert.Nil(t, err)
 		assert.NotEqual(t, ast, nil)
@@ -112,7 +111,6 @@ func TestSelect(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	fmt.Println("(Memory) Testing: INSERT INTO test VALUES(100, 200, 300)")
 	mb = NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
@@ -136,20 +134,43 @@ func TestInsert(t *testing.T) {
 }
 
 func TestCreateTable(t *testing.T) {
-	fmt.Println("(Memory) Testing: CREATE TABLE test(x INT, y INT, z INT)")
 	mb = NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
 	ast, err := parser.Parse("CREATE TABLE test(x INT, y INT, z INT)")
 	assert.Nil(t, err)
-	assert.NotEqual(t, ast, nil)
-
 	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
 	assert.Nil(t, err)
+	assert.Equal(t, mb.tables["test"].name, "test")
+	assert.Equal(t, mb.tables["test"].columns, []string{"x", "y", "z"})
+
+	// Second time, already exists
+	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	assert.Equal(t, ErrTableAlreadyExists, err)
+}
+
+func TestCreateIndex(t *testing.T) {
+	mb = NewMemoryBackend()
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("CREATE TABLE test(x INT, y INT, z INT)")
+	assert.Nil(t, err)
+	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	assert.Nil(t, err)
+
+	ast, err = parser.Parse("CREATE INDEX foo ON test (x);")
+	assert.Nil(t, err)
+	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+	assert.Nil(t, err)
+	assert.Equal(t, mb.tables["test"].indexes[0].name, "foo")
+	assert.Equal(t, mb.tables["test"].indexes[0].exp.generateCode(), `"x"`)
+
+	// Second time, already exists
+	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+	assert.Equal(t, ErrIndexAlreadyExists, err)
 }
 
 func TestDropTable(t *testing.T) {
-	fmt.Println("(Memory) Testing: DROP TABLE test")
 	mb = NewMemoryBackend()
 
 	parser := Parser{HelpMessagesDisabled: true}
@@ -170,4 +191,68 @@ func TestDropTable(t *testing.T) {
 	assert.NotEqual(t, ast, nil)
 	err = mb.DropTable(ast.Statements[0].DropTableStatement)
 	assert.Nil(t, err)
+}
+
+func TestTable_GetApplicableIndexes(t *testing.T) {
+	mb := NewMemoryBackend()
+
+	parser := Parser{HelpMessagesDisabled: true}
+	ast, err := parser.Parse("CREATE TABLE test (x INT, y INT);")
+	assert.Nil(t, err)
+	err = mb.CreateTable(ast.Statements[0].CreateTableStatement)
+	assert.Nil(t, err)
+
+	ast, err = parser.Parse("CREATE INDEX x_idx ON test (x);")
+	assert.Nil(t, err)
+	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
+	assert.Nil(t, err)
+
+	tests := []struct {
+		where   string
+		indexes []string
+	}{
+		{
+			"x = 2 OR y = 3",
+			[]string{},
+		},
+		{
+			"x = 2",
+			[]string{`"x"`},
+		},
+		{
+			"x = 2 AND y = 3",
+			[]string{`"x"`},
+		},
+		{
+			"x = 2 AND (y = 3 OR y = 5)",
+			[]string{`"x"`},
+		},
+	}
+
+	for _, test := range tests {
+		ast, err = parser.Parse(fmt.Sprintf("SELECT * FROM test WHERE %s", test.where))
+		assert.Nil(t, err, test.where)
+		where := ast.Statements[0].SelectStatement.where
+		indexes := []string{}
+		for _, i := range mb.tables["test"].getApplicableIndexes(where) {
+			indexes = append(indexes, i.i.exp.generateCode())
+		}
+		assert.Equal(t, test.indexes, indexes, test.where)
+	}
+}
+
+func TestLiteralToMemoryCell(t *testing.T) {
+	var i *int32 = nil
+	assert.Equal(t, i, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsInt())
+	assert.Equal(t, i, literalToMemoryCell(&token{value: "not an int", kind: numericKind}).AsInt())
+	assert.Equal(t, int32(2), *literalToMemoryCell(&token{value: "2", kind: numericKind}).AsInt())
+
+	var s *string = nil
+	assert.Equal(t, s, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsText())
+	assert.Equal(t, "foo", *literalToMemoryCell(&token{value: "foo", kind: stringKind}).AsText())
+
+	var b *bool = nil
+	assert.Equal(t, b, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsBool())
+	assert.Equal(t, true, *literalToMemoryCell(&token{value: "true", kind: boolKind}).AsBool())
+	assert.Equal(t, false, *literalToMemoryCell(&token{value: "false", kind: boolKind}).AsBool())
 }

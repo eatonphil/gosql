@@ -50,7 +50,7 @@ func main() {
 			case gosql.IntType:
 				s = fmt.Sprintf("%d", cell.AsInt())
 			case gosql.TextType:
-				s = cell.AsText()
+				s = *cell.AsText()
 			}
 
 			fmt.Printf(" %s | ", s)
