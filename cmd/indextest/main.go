@@ -79,7 +79,7 @@ func perf(name string, b gosql.Backend, cb func(b gosql.Backend)) {
 	start := time.Now()
 	fmt.Println("Starting", name)
 	cb(b)
-	fmt.Printf("Finished %s: %f seconds\n", name, time.Now().Sub(start).Seconds())
+	fmt.Printf("Finished %s: %f seconds\n", name, time.Since(start).Seconds())
 
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
