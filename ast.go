@@ -47,8 +47,6 @@ func (e expression) generateCode() string {
 	return ""
 }
 
-type identifier expression
-
 type selectItem struct {
 	exp      *expression
 	asterisk bool
@@ -142,7 +140,6 @@ func (dts DropTableStatement) GenerateCode() string {
 
 type InsertStatement struct {
 	table  token
-	cols   *[]*identifier
 	values *[]*expression
 }
 

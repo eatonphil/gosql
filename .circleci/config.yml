@@ -9,5 +9,6 @@ jobs:
       - checkout
 
       - run: go get -v -t -d ./...
-      - run: go test -v ./...
+      - run: make test
+      - run: make lint
       - run: go build cmd/main.go

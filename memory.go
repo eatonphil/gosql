@@ -51,7 +51,7 @@ func (mc memoryCell) equals(b memoryCell) bool {
 		return mc == nil && b == nil
 	}
 
-	return bytes.Compare(mc, b) == 0
+	return bytes.Equal(mc, b)
 }
 
 func literalToMemoryCell(t *token) memoryCell {
@@ -66,7 +66,7 @@ func literalToMemoryCell(t *token) memoryCell {
 		// TODO: handle bigint
 		err = binary.Write(buf, binary.BigEndian, int32(i))
 		if err != nil {
-			fmt.Printf("Corrupted data [%s]: %s\n", string(buf.Bytes()), err)
+			fmt.Printf("Corrupted data [%s]: %s\n", buf.String(), err)
 			return nil
 		}
 		return buf.Bytes()
@@ -193,7 +193,8 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 	case eqSymbol:
 		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
 			ti := i.(treeItem)
-			if bytes.Compare(ti.value, value) != 0 {
+
+			if !bytes.Equal(ti.value, value) {
 				return false
 			}
 
@@ -203,7 +204,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 	case neqSymbol:
 		i.tree.AscendGreaterOrEqual(llrb.Inf(-1), func(i llrb.Item) bool {
 			ti := i.(treeItem)
-			if bytes.Compare(ti.value, value) != 0 {
+			if bytes.Equal(ti.value, value) {
 				indexes = append(indexes, ti.index)
 			}
 
@@ -344,7 +345,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 
 			return falseMemoryCell, "?column?", BoolType, nil
 		case neqSymbol:
-			if len(r) == 0 || len(r) == 0 {
+			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
 

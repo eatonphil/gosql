@@ -7,5 +7,6 @@ test:
 cover: 
 	go tool cover -func=coverage.out
 
-vet:
+lint:
 	go vet .
+	golangci-lint run
