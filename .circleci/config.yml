@@ -11,4 +11,6 @@ jobs:
       - run: go get -v -t -d ./...
       - run: make test
       - run: make lint
+      # Fail if there's a gofmt diff
+      - run: bash -c '[[ $(gofmt -l .) ]] && exit 1'
       - run: go build cmd/main.go
