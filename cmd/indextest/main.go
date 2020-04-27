@@ -52,7 +52,7 @@ func doSelect(mb gosql.Backend) {
 		panic("Expected 1 row")
 	}
 
-	if int(r.Rows[0][1].AsInt()) != inserts-1 {
+	if int(*r.Rows[0][1].AsInt()) != inserts-1 {
 		panic(fmt.Sprintf("Bad row, got: %d", r.Rows[0][1].AsInt()))
 	}
 
@@ -70,7 +70,7 @@ func doSelect(mb gosql.Backend) {
 		panic("Expected 1 row")
 	}
 
-	if int(r.Rows[0][1].AsInt()) != 0 {
+	if int(*r.Rows[0][1].AsInt()) != 0 {
 		panic(fmt.Sprintf("Bad row, got: %d", r.Rows[0][1].AsInt()))
 	}
 }
