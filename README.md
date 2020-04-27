@@ -11,36 +11,35 @@ $ git clone git@github.com:eatonphil/gosql
 $ cd gosql
 $ go run cmd/main.go
 Welcome to gosql.
-# CREATE TABLE users (name TEXT, age INT);
+# CREATE TABLE users (id INT PRIMARY KEY, name TEXT, age INT);
 ok
-#  INSERT INTO users VALUES ('Stephen', 16);
+# \d users
+Table "users"
+  Column |  Type   | Nullable
+---------+---------+-----------
+  id     | integer | not null
+  name   | text    |
+  age    | integer |
+Indexes:
+        "users_pkey" PRIMARY KEY, rbtree ("id")
+
+# INSERT INTO users VALUES (1, 'Corey', 34);
 ok
-# SELECT name, age FROM users;
-   name   | age
-----------+------
-  Stephen |  16
+# INSERT INTO users VALUES (1, 'Max', 29);
+Error inserting values: Duplicate key value violates unique constraint
+# INSERT INTO users VALUES (2, 'Max', 29);
+ok
+# SELECT * FROM users WHERE id = 2;
+  id | name | age
+-----+------+------
+   2 | Max  |  29
 (1 result)
 ok
-# INSERT INTO users VALUES ('Adrienne', 23);
-ok
-# SELECT age + 2, name FROM users WHERE age = 23;
-  age |   name
-------+-----------
-   25 | Adrienne
-(1 result)
-ok
-# SELECT age, name FROM users WHERE age = 23 OR age = 16;
-  age |   name
-------+-----------
-   16 | Stephen
-   23 | Adrienne
-(2 results)
-ok
-# SELECT name FROM users;
-    name
-------------
-  Stephen
-  Adrienne
+# SELECT id, name, age + 3 FROM users WHERE id = 2 OR id = 1;
+  id | name  | ?column?
+-----+-------+-----------
+   1 | Corey |       37
+   2 | Max   |       32
 (2 results)
 ok
 ```
@@ -59,18 +58,20 @@ ok
 
 ## Contributing
 
-* Add a new operator (such as `<`, `>`, etc.) supported by PostgreSQL
-* Add a new data type supported by PostgreSQL
+* Add a new operator (such as `-`, `*`, etc.)
+* Add a new data type (such as `VARCHAR(n)``)
 
 In each case, you'll probably have to add support in the lexer,
 parser, and in-memory backend. I recommend going in that order.
 
-In all cases, make sure the code is formatted (`make fmt`) and passes
-tests (`make test`). New code should have tests.
+In all cases, make sure the code is formatted (`make fmt`), linted
+(`make lint`) and passes tests (`make test`). New code should have
+tests.
 
 ## Blog series
 
 * [Writing a SQL database from scratch in Go](https://notes.eatonphil.com/database-basics.html)
+* [Binary expressions and WHERE filters](https://notes.eatonphil.com/database-basics-expressions-and-where.html)
 
 ## Further reading
 

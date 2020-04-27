@@ -2,10 +2,11 @@ fmt:
 	gofmt -w -s .
 
 test:
-	go test -race .
+	go test -race -cover -coverprofile=coverage.out .
 
-vet:
-	go vet .
+cover:
+	go tool cover -func=coverage.out
 
 lint:
-	golint ./...
+	go vet .
+	golangci-lint run

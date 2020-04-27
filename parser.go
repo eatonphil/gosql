@@ -42,22 +42,6 @@ func (p Parser) helpMessage(tokens []*token, cursor uint, msg string) {
 	fmt.Printf("[%d,%d]: %s, near: %s\n", c.loc.line, c.loc.col, msg, c.value)
 }
 
-// parseToken checks whether the type of the token, present at the cursor's location, is equal to t's kind.
-// If the check is successful then it returns the matched token and the next location.
-func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, bool) {
-	cursor := initialCursor
-
-	if cursor >= uint(len(tokens)) {
-		return nil, initialCursor, false
-	}
-
-	if p := tokens[cursor]; t.equals(p) {
-		return p, cursor + 1, true
-	}
-
-	return nil, initialCursor, false
-}
-
 // parseTokenKind works exactly sames as parseToken but instead of comparing the tokens it compares the kind of the
 // token, i.e., it checks whether the kind of the token present at the cursor right now is equal to the kind parameter
 // passed.
@@ -71,6 +55,22 @@ func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKi
 	current := tokens[cursor]
 	if current.kind == kind {
 		return current, cursor + 1, true
+	}
+
+	return nil, initialCursor, false
+}
+
+// parseToken checks whether the type of the token, present at the cursor's location, is equal to t's kind.
+// If the check is successful then it returns the matched token and the next location.
+func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, bool) {
+	cursor := initialCursor
+
+	if cursor >= uint(len(tokens)) {
+		return nil, initialCursor, false
+	}
+
+	if p := tokens[cursor]; t.equals(p) {
+		return p, cursor + 1, true
 	}
 
 	return nil, initialCursor, false
@@ -91,7 +91,7 @@ func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKi
 func (p Parser) parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, uint, bool) {
 	cursor := initialCursor
 
-	kinds := []tokenKind{identifierKind, numericKind, stringKind, boolKind}
+	kinds := []tokenKind{identifierKind, numericKind, stringKind, boolKind, nullKind}
 	for _, kind := range kinds {
 		t, newCursor, ok := p.parseTokenKind(tokens, cursor, kind)
 		if ok {
@@ -147,6 +147,10 @@ outer:
 			tokenFromKeyword(orKeyword),
 			tokenFromSymbol(eqSymbol),
 			tokenFromSymbol(neqSymbol),
+			tokenFromSymbol(ltSymbol),
+			tokenFromSymbol(lteSymbol),
+			tokenFromSymbol(gtSymbol),
+			tokenFromSymbol(gteSymbol),
 			tokenFromSymbol(concatSymbol),
 			tokenFromSymbol(plusSymbol),
 		}
@@ -445,9 +449,16 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 		}
 		cursor = newCursor
 
+		primaryKey := false
+		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(primarykeyKeyword))
+		if ok {
+			primaryKey = true
+		}
+
 		cds = append(cds, &columnDefinition{
-			name:     *id,
-			datatype: *ty,
+			name:       *id,
+			datatype:   *ty,
+			primaryKey: primaryKey,
 		})
 	}
 
@@ -562,6 +573,14 @@ func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*S
 		}, newCursor, true
 	}
 
+	crtIdx, newCursor, ok := p.parseCreateIndexStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:                 CreateIndexKind,
+			CreateIndexStatement: crtIdx,
+		}, newCursor, true
+	}
+
 	dpTbl, newCursor, ok := p.parseDropTableStatement(tokens, cursor, semicolonToken)
 	if ok {
 		return &Statement{
@@ -571,6 +590,61 @@ func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*S
 	}
 
 	return nil, initialCursor, false
+}
+
+func (p Parser) parseCreateIndexStatement(tokens []*token, initialCursor uint, delimiter token) (*CreateIndexStatement, uint, bool) {
+	cursor := initialCursor
+	ok := false
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(createKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	unique := false
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(uniqueKeyword))
+	if ok {
+		unique = true
+	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(indexKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	name, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected index name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(onKeyword))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected ON keyword")
+		return nil, initialCursor, false
+	}
+
+	table, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected table name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	e, newCursor, ok := p.parseExpression(tokens, cursor, []token{delimiter}, 0)
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected table name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	return &CreateIndexStatement{
+		name:   *name,
+		unique: unique,
+		table:  *table,
+		exp:    *e,
+	}, cursor, true
 }
 
 // Parse parses the provided SQL statement and returns an Abstract Syntax Tree.

@@ -15,23 +15,28 @@ type location struct {
 type keyword string
 
 const (
-	selectKeyword keyword = "select"
-	fromKeyword   keyword = "from"
-	asKeyword     keyword = "as"
-	tableKeyword  keyword = "table"
-	createKeyword keyword = "create"
-	dropKeyword   keyword = "drop"
-	insertKeyword keyword = "insert"
-	intoKeyword   keyword = "into"
-	valuesKeyword keyword = "values"
-	intKeyword    keyword = "int"
-	textKeyword   keyword = "text"
-	boolKeyword   keyword = "boolean"
-	whereKeyword  keyword = "where"
-	andKeyword    keyword = "and"
-	orKeyword     keyword = "or"
-	trueKeyword   keyword = "true"
-	falseKeyword  keyword = "false"
+	selectKeyword     keyword = "select"
+	fromKeyword       keyword = "from"
+	asKeyword         keyword = "as"
+	tableKeyword      keyword = "table"
+	createKeyword     keyword = "create"
+	dropKeyword       keyword = "drop"
+	insertKeyword     keyword = "insert"
+	intoKeyword       keyword = "into"
+	valuesKeyword     keyword = "values"
+	intKeyword        keyword = "int"
+	textKeyword       keyword = "text"
+	boolKeyword       keyword = "boolean"
+	whereKeyword      keyword = "where"
+	andKeyword        keyword = "and"
+	orKeyword         keyword = "or"
+	trueKeyword       keyword = "true"
+	falseKeyword      keyword = "false"
+	uniqueKeyword     keyword = "unique"
+	indexKeyword      keyword = "index"
+	onKeyword         keyword = "on"
+	primarykeyKeyword keyword = "primary key"
+	nullKeyword       keyword = "null"
 )
 
 // symbol is the type for storing the reserved symbols of the SQL supported by the gosql
@@ -45,8 +50,13 @@ const (
 	rightParenSymbol symbol = ")"
 	eqSymbol         symbol = "="
 	neqSymbol        symbol = "<>"
+	neqSymbol2       symbol = "!="
 	concatSymbol     symbol = "||"
 	plusSymbol       symbol = "+"
+	ltSymbol         symbol = "<"
+	lteSymbol        symbol = "<="
+	gtSymbol         symbol = ">"
+	gteSymbol        symbol = ">="
 )
 
 // tokenKind is a type for storing the kind/type of the token
@@ -59,6 +69,7 @@ const (
 	stringKind
 	numericKind
 	boolKind
+	nullKind
 )
 
 // token is created after the lexical analysis is done for a statement. Once the lex process is over, it creates a slice
@@ -83,11 +94,23 @@ func (t token) bindingPower() uint {
 		case eqSymbol:
 			fallthrough
 		case neqSymbol:
+			return 2
+
+		case ltSymbol:
 			fallthrough
+		case gtSymbol:
+			return 3
+
+		// For some reason these are grouped separately
+		case lteSymbol:
+			fallthrough
+		case gteSymbol:
+			return 4
+
 		case concatSymbol:
 			fallthrough
 		case plusSymbol:
-			return 3
+			return 5
 		}
 	}
 
@@ -180,6 +203,11 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	symbols := []symbol{
 		eqSymbol,
 		neqSymbol,
+		neqSymbol2,
+		ltSymbol,
+		lteSymbol,
+		gtSymbol,
+		gteSymbol,
 		concatSymbol,
 		plusSymbol,
 		commaSymbol,
@@ -203,6 +231,11 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 
 	cur.pointer = ic.pointer + uint(len(match))
 	cur.loc.col = ic.loc.col + uint(len(match))
+
+	// != is rewritten as <>: https://www.postgresql.org/docs/9.5/functions-comparison.html
+	if match == string(neqSymbol2) {
+		match = string(neqSymbol)
+	}
 
 	return &token{
 		value: match,
@@ -232,6 +265,11 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		asKeyword,
 		trueKeyword,
 		falseKeyword,
+		uniqueKeyword,
+		indexKeyword,
+		onKeyword,
+		primarykeyKeyword,
+		nullKeyword,
 	}
 
 	var options []string
@@ -250,6 +288,10 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	kind := keywordKind
 	if match == string(trueKeyword) || match == string(falseKeyword) {
 		kind = boolKind
+	}
+
+	if match == string(nullKeyword) {
+		kind = nullKind
 	}
 
 	return &token{
