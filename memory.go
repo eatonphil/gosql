@@ -86,9 +86,9 @@ func literalToMemoryCell(t *token) memoryCell {
 	if t.kind == boolKind {
 		if t.value == "true" {
 			return []byte{1}
-		} else {
-			return []byte{0}
 		}
+
+		return []byte{0}
 	}
 
 	return nil

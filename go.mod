@@ -9,4 +9,5 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99
 	github.com/stretchr/testify v1.5.1
+	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
 )
