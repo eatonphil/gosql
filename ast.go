@@ -47,7 +47,6 @@ func (e expression) generateCode() string {
 	return ""
 }
 
-// selectItem is a struct for the items selected in a Select Query
 type selectItem struct {
 	exp      *expression
 	asterisk bool // for *
@@ -58,7 +57,6 @@ type fromItem struct {
 	table *token
 }
 
-// SelectStatement is a struct for SQL Select Statement.
 type SelectStatement struct {
 	item  *[]*selectItem // the selected items
 	from  *fromItem      // it contains the table name
@@ -133,7 +131,6 @@ func (cis CreateIndexStatement) GenerateCode() string {
 	return fmt.Sprintf("CREATE%s INDEX \"%s\" ON \"%s\" (%s);", unique, cis.name.value, cis.table.value, cis.exp.generateCode())
 }
 
-// DropTableStatement represents a SQL Drop Table Statement
 type DropTableStatement struct {
 	name token // the name of the table present in the statement
 }
