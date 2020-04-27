@@ -8,6 +8,8 @@ jobs:
     steps:
       - checkout
 
+      # Install golangci-lint
+      - run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.25.0
       - run: go get -v -t -d ./...
       - run: make test
       - run: make lint
