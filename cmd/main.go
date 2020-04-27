@@ -58,7 +58,7 @@ func doSelect(mb gosql.Backend, slct *gosql.SelectStatement) error {
 				}
 			}
 
-			row = append(row,    r)
+			row = append(row, r)
 		}
 
 		rows = append(rows, row)
