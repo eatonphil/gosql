@@ -143,7 +143,7 @@ func (dts DropTableStatement) GenerateCode() string {
 }
 
 type InsertStatement struct {
-	table  token // table name
+	table  token          // table name
 	values *[]*expression // corresponding values for the columns
 }
 
