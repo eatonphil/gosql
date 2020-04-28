@@ -53,14 +53,10 @@ type selectItem struct {
 	as       *token
 }
 
-type fromItem struct {
-	table *token
-}
-
 type SelectStatement struct {
-	item  *[]*selectItem // the selected items
-	from  *fromItem      // it contains the table name
-	where *expression    // expression that will be applied in where clause
+	item  *[]*selectItem
+	from  *token
+	where *expression
 }
 
 func (ss SelectStatement) GenerateCode() string {
@@ -79,7 +75,7 @@ func (ss SelectStatement) GenerateCode() string {
 
 	from := ""
 	if ss.from != nil {
-		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.table.value)
+		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.value)
 	}
 
 	where := ""
@@ -96,10 +92,9 @@ type columnDefinition struct {
 	primaryKey bool
 }
 
-// CreateTableStatement is a struct for SQL Create Table Statement.
 type CreateTableStatement struct {
-	name token                // the name of the table
-	cols *[]*columnDefinition // the column definitions
+	name token
+	cols *[]*columnDefinition
 }
 
 func (cts CreateTableStatement) GenerateCode() string {
@@ -132,7 +127,7 @@ func (cis CreateIndexStatement) GenerateCode() string {
 }
 
 type DropTableStatement struct {
-	name token // the name of the table present in the statement
+	name token
 }
 
 func (dts DropTableStatement) GenerateCode() string {
@@ -140,8 +135,8 @@ func (dts DropTableStatement) GenerateCode() string {
 }
 
 type InsertStatement struct {
-	table  token          // table name
-	values *[]*expression // corresponding values for the columns
+	table  token
+	values *[]*expression
 }
 
 func (is InsertStatement) GenerateCode() string {
@@ -152,22 +147,16 @@ func (is InsertStatement) GenerateCode() string {
 	return fmt.Sprintf("INSERT INTO \"%s\" VALUES (%s);", is.table.value, strings.Join(values, ", "))
 }
 
-// AstKind is used to categorize the Statements
 type AstKind uint
 
 const (
-	// SelectKind is for Select Statements
 	SelectKind AstKind = iota
-	// CreateTableKind is for Create Table Statements
 	CreateTableKind
 	CreateIndexKind
-	// DropTableKind is for Drop Table Statements
 	DropTableKind
-	// InsertKind is for Insert Statements
 	InsertKind
 )
 
-// Statement represents a SQL statement
 type Statement struct {
 	SelectStatement      *SelectStatement
 	CreateTableStatement *CreateTableStatement
@@ -194,7 +183,6 @@ func (s Statement) GenerateCode() string {
 	return "?unknown?"
 }
 
-// Ast is the abstract syntax tree created by the lexers and parsers
 type Ast struct {
 	Statements []*Statement
 }

@@ -226,12 +226,10 @@ func TestParse(t *testing.T) {
 									},
 								},
 							},
-							from: &fromItem{
-								table: &token{
-									loc:   location{col: 33, line: 0},
-									kind:  identifierKind,
-									value: "users",
-								},
+							from: &token{
+								loc:   location{col: 33, line: 0},
+								kind:  identifierKind,
+								value: "users",
 							},
 						},
 					},

@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-// tokenFromKeyword converts a keyword into a token
 func tokenFromKeyword(k keyword) token {
 	return token{
 		kind:  keywordKind,
@@ -13,7 +12,6 @@ func tokenFromKeyword(k keyword) token {
 	}
 }
 
-// tokenFromSymbol converts a keyword into a symbol
 func tokenFromSymbol(s symbol) token {
 	return token{
 		kind:  symbolKind,
@@ -21,12 +19,11 @@ func tokenFromSymbol(s symbol) token {
 	}
 }
 
-// Parser contains the functions required to  parse a SQL string and convert it into an AST
 type Parser struct {
 	HelpMessagesDisabled bool
 }
 
-// helpMessage prints the error found while parsing
+// helpMessage prints errors found while parsing
 func (p Parser) helpMessage(tokens []*token, cursor uint, msg string) {
 	if p.HelpMessagesDisabled {
 		return
@@ -42,9 +39,7 @@ func (p Parser) helpMessage(tokens []*token, cursor uint, msg string) {
 	fmt.Printf("[%d,%d]: %s, near: %s\n", c.loc.line, c.loc.col, msg, c.value)
 }
 
-// parseTokenKind works exactly sames as parseToken but instead of comparing the tokens it compares the kind of the
-// token, i.e., it checks whether the kind of the token present at the cursor right now is equal to the kind parameter
-// passed.
+// parseTokenKind looks for a token of the given kind
 func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKind) (*token, uint, bool) {
 	cursor := initialCursor
 
@@ -60,8 +55,8 @@ func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKi
 	return nil, initialCursor, false
 }
 
-// parseToken checks whether the type of the token, present at the cursor's location, is equal to t's kind.
-// If the check is successful then it returns the matched token and the next location.
+// parseToken looks for a token the same as passed in (ignoring token
+// location)
 func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, bool) {
 	cursor := initialCursor
 
@@ -76,18 +71,6 @@ func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token
 	return nil, initialCursor, false
 }
 
-// parseLiteralExpression first checks whether the type of the token, present at the cursor's location, is equal to one
-// of the following:
-//
-// 1. Identifier
-//
-// 2. Numeric
-//
-// 3. String
-//
-// 4. Bool
-//
-// If the check is successful then it returns the matched token and the next location.
 func (p Parser) parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, uint, bool) {
 	cursor := initialCursor
 
@@ -196,7 +179,6 @@ outer:
 	return exp, cursor, true
 }
 
-// parseSelectItem retrieves the items that are selected in the SQL statement.
 func (p Parser) parseSelectItem(tokens []*token, initialCursor uint, delimiters []token) (*[]*selectItem, uint, bool) {
 	cursor := initialCursor
 
@@ -258,20 +240,6 @@ outer:
 	return &s, cursor, true
 }
 
-// parseFromItem returns the name identifier of the SQL table. It is called once it is confirmed that the fromToken is
-// present.
-func (p Parser) parseFromItem(tokens []*token, initialCursor uint, _ []token) (*fromItem, uint, bool) {
-	ident, newCursor, ok := p.parseTokenKind(tokens, initialCursor, identifierKind)
-	if !ok {
-		return nil, initialCursor, false
-	}
-
-	return &fromItem{table: ident}, newCursor, true
-}
-
-// parseSelectStatement checks if the provided tokens are from a Select Statement. It first check whether the token
-// starts with a select keywords and then proceeds with finding the selected items, table name and the expressions
-// present in the where clause.
 func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) (*SelectStatement, uint, bool) {
 	var ok bool
 	cursor := initialCursor
@@ -292,11 +260,10 @@ func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimi
 	cursor = newCursor
 
 	whereToken := tokenFromKeyword(whereKeyword)
-	delimiters := []token{delimiter, whereToken}
 
 	_, cursor, ok = p.parseToken(tokens, cursor, fromToken)
 	if ok {
-		from, newCursor, ok := p.parseFromItem(tokens, cursor, delimiters)
+		from, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected FROM item")
 			return nil, initialCursor, false
@@ -357,8 +324,6 @@ func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter 
 	return &exps, cursor, true
 }
 
-// parseInsertStatement checks whether the provided set of tokens contain an Insert Statement, if found it proceeds by
-// checking the presence of INTO keyword, Table Name and the data for the row to be inserted.
 func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, _ token) (*InsertStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
@@ -465,9 +430,6 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 	return &cds, cursor, true
 }
 
-// parseCreateTableStatement checks whether the provided set of tokens contain a Create Table statement. If found then
-// it proceeds with checking the presence of table keyword, table name and column definitions. It returns the found
-// CREATE table statement.
 func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _ token) (*CreateTableStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
@@ -513,9 +475,6 @@ func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _
 	}, cursor, true
 }
 
-// parseDropTableStatement checks whether the provided set of tokens contain a Drop Table Keyword. If found then
-// it proceeds with checking the presence of table keyword and the table name. It returns the found DROP table
-// statement.
 func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ token) (*DropTableStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
@@ -542,9 +501,6 @@ func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ t
 	}, cursor, true
 }
 
-// parseStatement finds the statements present in the provided tokens. It starts with parsing for a Select Statement
-// then an Insert statement afterwards a Create Table statement and finally, it tries to parse a DropStatement.
-// If any one of the parse function is successful then it returns the parsed  statement back.
 func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*Statement, uint, bool) {
 	cursor := initialCursor
 
@@ -647,7 +603,6 @@ func (p Parser) parseCreateIndexStatement(tokens []*token, initialCursor uint, d
 	}, cursor, true
 }
 
-// Parse parses the provided SQL statement and returns an Abstract Syntax Tree.
 func (p Parser) Parse(source string) (*Ast, error) {
 	tokens, err := lex(source)
 	if err != nil {

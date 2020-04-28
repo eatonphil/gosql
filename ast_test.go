@@ -83,7 +83,7 @@ WHERE
 						{exp: &expression{literal: &token{value: "id", kind: identifierKind}, kind: literalKind}},
 						{exp: &expression{literal: &token{value: "name", kind: identifierKind}, kind: literalKind}},
 					},
-					from: &fromItem{&token{value: "users"}},
+					from: &token{value: "users"},
 					where: &expression{
 						binary: &binaryExpression{
 							a:  expression{literal: &token{value: "id", kind: identifierKind}, kind: literalKind},
