@@ -23,6 +23,7 @@ type Parser struct {
 	HelpMessagesDisabled bool
 }
 
+// helpMessage prints errors found while parsing
 func (p Parser) helpMessage(tokens []*token, cursor uint, msg string) {
 	if p.HelpMessagesDisabled {
 		return
@@ -38,6 +39,7 @@ func (p Parser) helpMessage(tokens []*token, cursor uint, msg string) {
 	fmt.Printf("[%d,%d]: %s, near: %s\n", c.loc.line, c.loc.col, msg, c.value)
 }
 
+// parseTokenKind looks for a token of the given kind
 func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKind) (*token, uint, bool) {
 	cursor := initialCursor
 
@@ -53,6 +55,8 @@ func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKi
 	return nil, initialCursor, false
 }
 
+// parseToken looks for a token the same as passed in (ignoring token
+// location)
 func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, bool) {
 	cursor := initialCursor
 
@@ -134,7 +138,7 @@ outer:
 			tokenFromSymbol(plusSymbol),
 		}
 
-		var op *token = nil
+		var op *token
 		for _, bo := range binOps {
 			var t *token
 			t, cursor, ok = p.parseToken(tokens, cursor, bo)
@@ -175,11 +179,10 @@ outer:
 	return exp, cursor, true
 }
 
-// expression [AS ident] [, ...]
 func (p Parser) parseSelectItem(tokens []*token, initialCursor uint, delimiters []token) (*[]*selectItem, uint, bool) {
 	cursor := initialCursor
 
-	s := []*selectItem{}
+	var s []*selectItem
 outer:
 	for {
 		if cursor >= uint(len(tokens)) {
@@ -237,16 +240,6 @@ outer:
 	return &s, cursor, true
 }
 
-func (p Parser) parseFromItem(tokens []*token, initialCursor uint, _ []token) (*fromItem, uint, bool) {
-	ident, newCursor, ok := p.parseTokenKind(tokens, initialCursor, identifierKind)
-	if !ok {
-		return nil, initialCursor, false
-	}
-
-	return &fromItem{table: ident}, newCursor, true
-}
-
-// SELECT [ident [, ...]] [FROM ident] [WHERE condition [combinator ...]]
 func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) (*SelectStatement, uint, bool) {
 	var ok bool
 	cursor := initialCursor
@@ -267,11 +260,10 @@ func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimi
 	cursor = newCursor
 
 	whereToken := tokenFromKeyword(whereKeyword)
-	delimiters := []token{delimiter, whereToken}
 
 	_, cursor, ok = p.parseToken(tokens, cursor, fromToken)
 	if ok {
-		from, newCursor, ok := p.parseFromItem(tokens, cursor, delimiters)
+		from, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected FROM item")
 			return nil, initialCursor, false
@@ -299,7 +291,7 @@ func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimi
 func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter token) (*[]*expression, uint, bool) {
 	cursor := initialCursor
 
-	exps := []*expression{}
+	var exps []*expression
 	for {
 		if cursor >= uint(len(tokens)) {
 			return nil, initialCursor, false
@@ -332,7 +324,7 @@ func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter 
 	return &exps, cursor, true
 }
 
-func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, delimiter token) (*InsertStatement, uint, bool) {
+func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, _ token) (*InsertStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
@@ -388,7 +380,7 @@ func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, delimi
 func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, delimiter token) (*[]*columnDefinition, uint, bool) {
 	cursor := initialCursor
 
-	cds := []*columnDefinition{}
+	var cds []*columnDefinition
 	for {
 		if cursor >= uint(len(tokens)) {
 			return nil, initialCursor, false
@@ -438,7 +430,7 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 	return &cds, cursor, true
 }
 
-func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, delimiter token) (*CreateTableStatement, uint, bool) {
+func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _ token) (*CreateTableStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
@@ -483,7 +475,7 @@ func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, d
 	}, cursor, true
 }
 
-func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, delimiter token) (*DropTableStatement, uint, bool) {
+func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ token) (*DropTableStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
@@ -509,7 +501,7 @@ func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, del
 	}, cursor, true
 }
 
-func (p Parser) parseStatement(tokens []*token, initialCursor uint, delimiter token) (*Statement, uint, bool) {
+func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*Statement, uint, bool) {
 	cursor := initialCursor
 
 	semicolonToken := tokenFromSymbol(semicolonSymbol)

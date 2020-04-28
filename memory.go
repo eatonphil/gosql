@@ -9,6 +9,9 @@ import (
 	"github.com/petar/GoLLRB/llrb"
 )
 
+// memoryCell is the underlying storage for the in-memory backend
+// implementation. Each supported datatype can be mapped to and from
+// this byte array.
 type memoryCell []byte
 
 func (mc memoryCell) AsInt() *int32 {
@@ -79,9 +82,9 @@ func literalToMemoryCell(t *token) memoryCell {
 	if t.kind == boolKind {
 		if t.value == "true" {
 			return []byte{1}
-		} else {
-			return []byte{0}
 		}
+
+		return []byte{0}
 	}
 
 	return nil
@@ -531,9 +534,9 @@ type MemoryBackend struct {
 func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	t := createTable()
 
-	if slct.from != nil && slct.from.table != nil {
+	if slct.from != nil {
 		var ok bool
-		t, ok = mb.tables[slct.from.table.value]
+		t, ok = mb.tables[slct.from.value]
 		if !ok {
 			return nil, ErrTableDoesNotExist
 		}

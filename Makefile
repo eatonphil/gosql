@@ -4,7 +4,7 @@ fmt:
 test:
 	go test -race -cover -coverprofile=coverage.out .
 
-cover: 
+cover:
 	go tool cover -func=coverage.out
 
 lint:

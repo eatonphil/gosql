@@ -5,11 +5,13 @@ import (
 	"strings"
 )
 
+// location of the token in source code
 type location struct {
 	line uint
 	col  uint
 }
 
+// for storing SQL reserved keywords
 type keyword string
 
 const (
@@ -37,6 +39,7 @@ const (
 	nullKeyword       keyword = "null"
 )
 
+// for storing SQL syntax
 type symbol string
 
 const (
@@ -111,17 +114,19 @@ func (t token) bindingPower() uint {
 	return 0
 }
 
+func (t *token) equals(other *token) bool {
+	return t.value == other.value && t.kind == other.kind
+}
+
+// cursor indicates the current position of the lexer
 type cursor struct {
 	pointer uint
 	loc     location
 }
 
-func (t *token) equals(other *token) bool {
-	return t.value == other.value && t.kind == other.kind
-}
-
-type lexer func(string, cursor) (*token, cursor, bool)
-
+// longestMatch iterates through a source string starting at the given
+// cursor to find the longest matching substring among the provided
+// options
 func longestMatch(source string, ic cursor, options []string) string {
 	var value []byte
 	var skipList []int
@@ -339,7 +344,6 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 				cur.pointer++
 				cur.loc.col++
 			}
-
 			continue
 		}
 
@@ -360,6 +364,9 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 	}, cur, true
 }
 
+// lexCharacterDelimited looks through a source string starting at the
+// given cursor to find a start- and end- delimiter. The delimiter can
+// be escaped be preceeding the delimiter with itself.
 func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cursor, bool) {
 	cur := ic
 
@@ -388,11 +395,10 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 					loc:   ic.loc,
 					kind:  stringKind,
 				}, cur, true
-			} else {
-				value = append(value, delimiter)
-				cur.pointer++
-				cur.loc.col++
 			}
+			value = append(value, delimiter)
+			cur.pointer++
+			cur.loc.col++
 		}
 
 		value = append(value, c)
@@ -440,7 +446,7 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 	}
 
 	return &token{
-		// Unquoted dentifiers are case-insensitive
+		// Unquoted identifiers are case-insensitive
 		value: strings.ToLower(string(value)),
 		loc:   ic.loc,
 		kind:  identifierKind,
@@ -451,8 +457,20 @@ func lexString(source string, ic cursor) (*token, cursor, bool) {
 	return lexCharacterDelimited(source, ic, '\'')
 }
 
+type lexer func(string, cursor) (*token, cursor, bool)
+
+// lex splits an input string into a list of tokens. This process
+// can be divided into following tasks:
+//
+// 1. Instantiating a cursor with pointing to the start of the string
+//
+// 2. Execute all the lexers in series.
+//
+// 3. If any of the lexer generate a token then add the token to the
+// token slice, update the cursor and restart the process from the new
+// cursor location.
 func lex(source string) ([]*token, error) {
-	tokens := []*token{}
+	var tokens []*token
 	cur := cursor{}
 
 lex:

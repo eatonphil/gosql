@@ -49,17 +49,13 @@ func (e expression) generateCode() string {
 
 type selectItem struct {
 	exp      *expression
-	asterisk bool
+	asterisk bool // for *
 	as       *token
-}
-
-type fromItem struct {
-	table *token
 }
 
 type SelectStatement struct {
 	item  *[]*selectItem
-	from  *fromItem
+	from  *token
 	where *expression
 }
 
@@ -79,7 +75,7 @@ func (ss SelectStatement) GenerateCode() string {
 
 	from := ""
 	if ss.from != nil {
-		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.table.value)
+		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.value)
 	}
 
 	where := ""
