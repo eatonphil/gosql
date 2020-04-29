@@ -48,7 +48,7 @@ func main() {
 			s := ""
 			switch typ {
 			case gosql.IntType:
-				s = fmt.Sprintf("%d", cell.AsInt())
+				s = fmt.Sprintf("%d", *cell.AsInt())
 			case gosql.TextType:
 				s = *cell.AsText()
 			}
