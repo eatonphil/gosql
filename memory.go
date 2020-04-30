@@ -725,6 +725,7 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 		})
 		if err != nil {
 			delete(mb.tables, t.name)
+			return err
 		}
 	}
 
