@@ -170,7 +170,7 @@ func (i *index) applicableValue(exp expression) *expression {
 	}
 
 	if valueExp.kind != literalKind {
-		fmt.Println("Only equality checks on literals supported")
+		fmt.Println("Only index checks on literals supported")
 		return nil
 	}
 
@@ -554,6 +554,12 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		t.rows = [][]memoryCell{{}}
 	}
 
+	for _, iAndE := range t.getApplicableIndexes(slct.where) {
+		index := iAndE.i
+		exp := iAndE.e
+		t = index.newTableFromSubset(t, exp)
+	}
+
 	// Expand SELECT * at the AST level into a SELECT on all columns
 	finalItems := []*selectItem{}
 	for _, item := range *slct.item {
@@ -579,12 +585,6 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		} else {
 			finalItems = append(finalItems, item)
 		}
-	}
-
-	for _, iAndE := range t.getApplicableIndexes(slct.where) {
-		index := iAndE.i
-		exp := iAndE.e
-		t = index.newTableFromSubset(t, exp)
 	}
 
 	for i := range t.rows {

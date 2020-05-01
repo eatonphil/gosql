@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
@@ -16,15 +15,13 @@ var lastId = 0
 var firstId = 0
 
 func doInsert(mb gosql.Backend) {
-	source := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(source)
 	parser := gosql.Parser{}
 	for i := 0; i < inserts; i++ {
-		lastId = r.Intn(inserts * 10)
+		lastId = i
 		if i == 0 {
 			firstId = lastId
 		}
-		ast, err := parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d, %d)", lastId, i))
+		ast, err := parser.Parse(fmt.Sprintf("INSERT INTO users VALUES (%d)", lastId))
 		if err != nil {
 			panic(err)
 		}
@@ -38,7 +35,7 @@ func doInsert(mb gosql.Backend) {
 
 func doSelect(mb gosql.Backend) {
 	parser := gosql.Parser{}
-	ast, err := parser.Parse(fmt.Sprintf("SELECT id, inc FROM users WHERE id = %d", lastId))
+	ast, err := parser.Parse(fmt.Sprintf("SELECT id FROM users WHERE id = %d", lastId))
 	if err != nil {
 		panic(err)
 	}
@@ -52,11 +49,11 @@ func doSelect(mb gosql.Backend) {
 		panic("Expected 1 row")
 	}
 
-	if int(*r.Rows[0][1].AsInt()) != inserts-1 {
+	if int(*r.Rows[0][0].AsInt()) != inserts-1 {
 		panic(fmt.Sprintf("Bad row, got: %d", r.Rows[0][1].AsInt()))
 	}
 
-	ast, err = parser.Parse(fmt.Sprintf("SELECT id, inc FROM users WHERE id = %d", firstId))
+	ast, err = parser.Parse(fmt.Sprintf("SELECT id FROM users WHERE id = %d", firstId))
 	if err != nil {
 		panic(err)
 	}
@@ -70,7 +67,7 @@ func doSelect(mb gosql.Backend) {
 		panic("Expected 1 row")
 	}
 
-	if int(*r.Rows[0][1].AsInt()) != 0 {
+	if int(*r.Rows[0][0].AsInt()) != 0 {
 		panic(fmt.Sprintf("Bad row, got: %d", r.Rows[0][1].AsInt()))
 	}
 }
@@ -100,8 +97,13 @@ func main() {
 		}
 	}
 
+	primaryKey := ""
+	if index {
+		primaryKey = " PRIMARY KEY"
+	}
+
 	parser := gosql.Parser{}
-	ast, err := parser.Parse("CREATE TABLE users (id INT, inc INT); CREATE INDEX id_idx ON users (id);")
+	ast, err := parser.Parse(fmt.Sprintf("CREATE TABLE users (id INT%s)", primaryKey))
 	if err != nil {
 		panic(err)
 	}
@@ -118,15 +120,6 @@ func main() {
 	fmt.Printf("Inserting %d rows%s\n", inserts, indexingString)
 
 	perf("INSERT", mb, doInsert)
-
-	if index {
-		perf("CREATE INDEX", mb, func(b gosql.Backend) {
-			err = mb.CreateIndex(ast.Statements[1].CreateIndexStatement)
-			if err != nil {
-				panic(err)
-			}
-		})
-	}
 
 	perf("SELECT", mb, doSelect)
 }
