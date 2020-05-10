@@ -86,7 +86,6 @@ func (dc *Conn) Query(query string, args []driver.Value) (driver.Rows, error) {
 	if len(args) > 0 {
 		// TODO: support parameterization
 		panic("Parameterization not supported")
-		return nil, nil
 	}
 
 	parser := Parser{}
@@ -127,12 +126,10 @@ func (dc *Conn) Query(query string, args []driver.Value) (driver.Rows, error) {
 
 func (dc *Conn) Prepare(query string) (driver.Stmt, error) {
 	panic("Prepare not implemented")
-	return nil, nil
 }
 
 func (dc *Conn) Begin() (driver.Tx, error) {
 	panic("Begin not implemented")
-	return nil, nil
 }
 
 func (dc *Conn) Close() error {
