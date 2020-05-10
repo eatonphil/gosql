@@ -69,19 +69,6 @@ type Conn struct {
 	bkd Backend
 }
 
-func (dc *Conn) doSelect(slct *SelectStatement) (driver.Rows, error) {
-	results, err := dc.bkd.Select(slct)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Rows{
-		rows:    results.Rows,
-		columns: results.Columns,
-		index:   0,
-	}, nil
-}
-
 func (dc *Conn) Query(query string, args []driver.Value) (driver.Rows, error) {
 	if len(args) > 0 {
 		// TODO: support parameterization
@@ -118,7 +105,16 @@ func (dc *Conn) Query(query string, args []driver.Value) (driver.Rows, error) {
 			return nil, fmt.Errorf("Error inserting values: %s", err)
 		}
 	case SelectKind:
-		return dc.doSelect(stmt.SelectStatement)
+		results, err := dc.bkd.Select(stmt.SelectStatement)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Rows{
+			rows:    results.Rows,
+			columns: results.Columns,
+			index:   0,
+		}, nil
 	}
 
 	return nil, nil
