@@ -54,6 +54,8 @@ type TableMetadata struct {
 
 type Backend interface {
 	CreateTable(*CreateTableStatement) error
+	DropTable(*DropTableStatement) error
+	CreateIndex(*CreateIndexStatement) error
 	Insert(*InsertStatement) error
 	Select(*SelectStatement) (*Results, error)
 	GetTables() []TableMetadata
