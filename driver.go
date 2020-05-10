@@ -34,29 +34,29 @@ func (r *Rows) Next(dest []driver.Value) error {
 
 	row := r.rows[r.index]
 
-	for i, cell := range row {
-		typ := r.columns[i].Type
+	for idx, cell := range row {
+		typ := r.columns[idx].Type
 		switch typ {
 		case IntType:
 			i := cell.AsInt()
 			if i == nil {
-				dest = append(dest, i)
+				dest[idx] = i
 			} else {
-				dest = append(dest, *i)
+				dest[idx] = *i
 			}
 		case TextType:
 			s := cell.AsText()
 			if s == nil {
-				dest = append(dest, s)
+				dest[idx] = s
 			} else {
-				dest = append(dest, *s)
+				dest[idx] = *s
 			}
 		case BoolType:
 			b := cell.AsBool()
 			if b == nil {
-				dest = append(dest, b)
+				dest[idx] = b
 			} else {
-				dest = append(dest, *b)
+				dest[idx] = b
 			}
 		}
 	}
@@ -139,12 +139,14 @@ func (dc *Conn) Close() error {
 	return nil
 }
 
-type Driver struct{}
+type Driver struct {
+	bkd Backend
+}
 
 func (d *Driver) Open(name string) (driver.Conn, error) {
-	return &Conn{NewMemoryBackend()}, nil
+	return &Conn{d.bkd}, nil
 }
 
 func init() {
-	sql.Register("postgres", &Driver{})
+	sql.Register("postgres", &Driver{NewMemoryBackend()})
 }
