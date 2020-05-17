@@ -53,9 +53,26 @@ type selectItem struct {
 	as       *token
 }
 
+type tableJoinKind uint
+
+const (
+	leftInnerKind tableJoinKind = iota
+)
+
+type tableJoin struct {
+	kind  tableJoinKind
+	table table
+	on    expression
+}
+
+type table struct {
+	name *token
+	join *tableJoin
+}
+
 type SelectStatement struct {
 	item  *[]*selectItem
-	from  *token
+	from  *table
 	where *expression
 }
 
@@ -75,7 +92,8 @@ func (ss SelectStatement) GenerateCode() string {
 
 	from := ""
 	if ss.from != nil {
-		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.value)
+		// TODO: print JOINs
+		from = fmt.Sprintf("s\nFROM\n\t\"%s\"", ss.from.name.value)
 	}
 
 	where := ""

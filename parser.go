@@ -240,6 +240,10 @@ outer:
 	return &s, cursor, true
 }
 
+func (p Parser) parseTable(tokens []*token, initialCursor uint) (*token, uint, bool) {
+	return p.parseTokenKind(tokens, initialCursor, identifierKind)
+}
+
 func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) (*SelectStatement, uint, bool) {
 	var ok bool
 	cursor := initialCursor
@@ -259,18 +263,55 @@ func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimi
 	slct.item = item
 	cursor = newCursor
 
-	whereToken := tokenFromKeyword(whereKeyword)
-
 	_, cursor, ok = p.parseToken(tokens, cursor, fromToken)
 	if ok {
-		from, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+		from, newCursor, ok := p.parseTable(tokens, cursor)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected FROM item")
 			return nil, initialCursor, false
 		}
 
-		slct.from = from
+		slct.from = &table{
+			name: from,
+		}
 		cursor = newCursor
+	}
+
+	whereToken := tokenFromKeyword(whereKeyword)
+	currentTable := slct.from
+	for {
+		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(joinKeyword))
+		if !ok {
+			break
+		}
+
+		joined, newCursor, ok := p.parseTable(tokens, cursor)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected FROM item")
+			return nil, initialCursor, false
+		}
+		cursor = newCursor
+
+		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(onKeyword))
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected ON keyword after JOIN")
+			return nil, initialCursor, false
+		}
+
+		exp, cursor, ok := p.parseExpression(tokens, cursor, []token{delimiter, whereToken}, 0)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected ON expression in JOIN")
+			return nil, initialCursor, false
+		}
+
+		currentTable.join = &tableJoin{
+			kind:  leftInnerKind,
+			table: table{
+				name: joined,
+			},
+			on:    *exp,
+		}
+		currentTable = &currentTable.join.table
 	}
 
 	_, cursor, ok = p.parseToken(tokens, cursor, whereToken)

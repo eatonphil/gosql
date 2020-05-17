@@ -117,7 +117,7 @@ type index struct {
 	typ        string
 }
 
-func (i *index) addRow(t *table, rowIndex uint) error {
+func (i *index) addRow(t *memoryTable, rowIndex uint) error {
 	indexValue, _, _, err := t.evaluateCell(rowIndex, i.exp)
 	if err != nil {
 		return err
@@ -177,7 +177,7 @@ func (i *index) applicableValue(exp expression) *expression {
 	return &valueExp
 }
 
-func (i *index) newTableFromSubset(t *table, exp expression) *table {
+func (i *index) newTableFromSubset(t *memoryTable, exp expression) *memoryTable {
 	valueExp := i.applicableValue(exp)
 	if valueExp == nil {
 		return t
@@ -264,7 +264,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 	return newT
 }
 
-type table struct {
+type memoryTable struct {
 	name        string
 	columns     []string
 	columnTypes []ColumnType
@@ -272,8 +272,8 @@ type table struct {
 	indexes     []*index
 }
 
-func createTable() *table {
-	return &table{
+func createTable() *memoryTable {
+	return &memoryTable{
 		name:        "?tmp?",
 		columns:     nil,
 		columnTypes: nil,
@@ -282,16 +282,16 @@ func createTable() *table {
 	}
 }
 
-func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
+func (t *memoryTable) evaluateLiteralCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
 	if exp.kind != literalKind {
 		return nil, "", 0, ErrInvalidCell
 	}
 
 	lit := exp.literal
 	if lit.kind == identifierKind {
-		for i, tableCol := range t.columns {
-			if tableCol == lit.value {
-				return t.rows[rowIndex][i], tableCol, t.columnTypes[i], nil
+		for i, memoryTableCol := range t.columns {
+			if memoryTableCol == lit.value {
+				return t.rows[rowIndex][i], memoryTableCol, t.columnTypes[i], nil
 			}
 		}
 
@@ -308,7 +308,7 @@ func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (memoryCell, 
 	return literalToMemoryCell(lit), "?column?", columnType, nil
 }
 
-func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
+func (t *memoryTable) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
 	if exp.kind != binaryKind {
 		return nil, "", 0, ErrInvalidCell
 	}
@@ -475,7 +475,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 	return nil, "", 0, ErrInvalidCell
 }
 
-func (t *table) evaluateCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
+func (t *memoryTable) evaluateCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
 	switch exp.kind {
 	case literalKind:
 		return t.evaluateLiteralCell(rowIndex, exp)
@@ -491,7 +491,7 @@ type indexAndExpression struct {
 	e expression
 }
 
-func (t *table) getApplicableIndexes(where *expression) []indexAndExpression {
+func (t *memoryTable) getApplicableIndexes(where *expression) []indexAndExpression {
 	var linearizeExpressions func(where *expression, exps []expression) []expression
 	linearizeExpressions = func(where *expression, exps []expression) []expression {
 		if where == nil || where.kind != binaryKind {
@@ -528,7 +528,7 @@ func (t *table) getApplicableIndexes(where *expression) []indexAndExpression {
 }
 
 type MemoryBackend struct {
-	tables map[string]*table
+	memoryTables map[string]*memoryTable
 }
 
 func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
@@ -536,7 +536,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 
 	if slct.from != nil {
 		var ok bool
-		t, ok = mb.tables[slct.from.value]
+		t, ok = mb.memoryTables[slct.from.name.value]
 		if !ok {
 			return nil, ErrTableDoesNotExist
 		}
@@ -628,7 +628,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 }
 
 func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
-	t, ok := mb.tables[inst.table.value]
+	t, ok := mb.memoryTables[inst.table.value]
 	if !ok {
 		return ErrTableDoesNotExist
 	}
@@ -672,13 +672,13 @@ func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 }
 
 func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
-	if _, ok := mb.tables[crt.name.value]; ok {
+	if _, ok := mb.memoryTables[crt.name.value]; ok {
 		return ErrTableAlreadyExists
 	}
 
 	t := createTable()
 	t.name = crt.name.value
-	mb.tables[t.name] = t
+	mb.memoryTables[t.name] = t
 	if crt.cols == nil {
 		return nil
 	}
@@ -696,13 +696,13 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 		case "boolean":
 			dt = BoolType
 		default:
-			delete(mb.tables, t.name)
+			delete(mb.memoryTables, t.name)
 			return ErrInvalidDatatype
 		}
 
 		if col.primaryKey {
 			if primaryKey != nil {
-				delete(mb.tables, t.name)
+				delete(mb.memoryTables, t.name)
 				return ErrPrimaryKeyAlreadyExists
 			}
 
@@ -717,14 +717,14 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 
 	if primaryKey != nil {
 		err := mb.CreateIndex(&CreateIndexStatement{
-			table:      crt.name,
-			name:       token{value: t.name + "_pkey"},
-			unique:     true,
-			primaryKey: true,
-			exp:        *primaryKey,
+			table: crt.name,
+			name:        token{value: t.name + "_pkey"},
+			unique:      true,
+			primaryKey:  true,
+			exp:         *primaryKey,
 		})
 		if err != nil {
-			delete(mb.tables, t.name)
+			delete(mb.memoryTables, t.name)
 			return err
 		}
 	}
@@ -733,12 +733,12 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 }
 
 func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
-	table, ok := mb.tables[ci.table.value]
+	memoryTable, ok := mb.memoryTables[ci.table.value]
 	if !ok {
 		return ErrTableDoesNotExist
 	}
 
-	for _, index := range table.indexes {
+	for _, index := range memoryTable.indexes {
 		if index.name == ci.name.value {
 			return ErrIndexAlreadyExists
 		}
@@ -752,10 +752,10 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 		tree:       llrb.New(),
 		typ:        "rbtree",
 	}
-	table.indexes = append(table.indexes, index)
+	memoryTable.indexes = append(memoryTable.indexes, index)
 
-	for i := range table.rows {
-		err := index.addRow(table, uint(i))
+	for i := range memoryTable.rows {
+		err := index.addRow(memoryTable, uint(i))
 		if err != nil {
 			return err
 		}
@@ -765,8 +765,8 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 }
 
 func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
-	if _, ok := mb.tables[dt.name.value]; ok {
-		delete(mb.tables, dt.name.value)
+	if _, ok := mb.memoryTables[dt.name.value]; ok {
+		delete(mb.memoryTables, dt.name.value)
 		return nil
 	}
 	return ErrTableDoesNotExist
@@ -774,7 +774,7 @@ func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
 
 func (mb *MemoryBackend) GetTables() []TableMetadata {
 	tms := []TableMetadata{}
-	for name, t := range mb.tables {
+	for name, t := range mb.memoryTables {
 		tm := TableMetadata{}
 		tm.Name = name
 
@@ -809,6 +809,6 @@ func (mb *MemoryBackend) GetTables() []TableMetadata {
 
 func NewMemoryBackend() *MemoryBackend {
 	return &MemoryBackend{
-		tables: map[string]*table{},
+		memoryTables: map[string]*memoryTable{},
 	}
 }

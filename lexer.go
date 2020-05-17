@@ -37,6 +37,7 @@ const (
 	onKeyword         keyword = "on"
 	primarykeyKeyword keyword = "primary key"
 	nullKeyword       keyword = "null"
+	joinKeyword       keyword = "join"
 )
 
 // for storing SQL syntax
@@ -261,6 +262,7 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 		onKeyword,
 		primarykeyKeyword,
 		nullKeyword,
+		joinKeyword,
 	}
 
 	var options []string
