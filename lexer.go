@@ -410,8 +410,10 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*Token, cu
 
 func lexIdentifier(source string, ic cursor) (*Token, cursor, bool) {
 	// Handle separately if is a double-quoted identifier
-	if Token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
-		return Token, newCursor, true
+	if token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
+		// Overwrite from stringkind to identifierkind
+		token.Kind = IdentifierKind
+		return token, newCursor, true
 	}
 
 	cur := ic

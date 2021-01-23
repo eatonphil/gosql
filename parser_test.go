@@ -193,7 +193,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			source: "SELECT id, name AS fullname FROM users",
+			source: `SELECT id, name AS fullname FROM "sketchy name"`,
 			ast: &Ast{
 				Statements: []*Statement{
 					{
@@ -229,7 +229,7 @@ func TestParse(t *testing.T) {
 							From: &Token{
 								Loc:   Location{Col: 33, Line: 0},
 								Kind:  IdentifierKind,
-								Value: "users",
+								Value: "sketchy name",
 							},
 						},
 					},
