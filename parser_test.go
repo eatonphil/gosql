@@ -10,56 +10,56 @@ import (
 func TestParseExpression(t *testing.T) {
 	tests := []struct {
 		source string
-		ast    *expression
+		ast    *Expression
 	}{
 		{
 			source: "2 = 3 AND 4 = 5",
-			ast: &expression{
-				binary: &binaryExpression{
-					a: expression{
-						binary: &binaryExpression{
-							a: expression{
-								literal: &token{"2", numericKind, location{0, 0}},
-								kind:    literalKind,
+			ast: &Expression{
+				Binary: &BinaryExpression{
+					A: Expression{
+						Binary: &BinaryExpression{
+							A: Expression{
+								Literal: &Token{"2", NumericKind, Location{0, 0}},
+								Kind:    LiteralKind,
 							},
-							b: expression{
-								literal: &token{"3", numericKind, location{0, 5}},
-								kind:    literalKind,
+							B: Expression{
+								Literal: &Token{"3", NumericKind, Location{0, 5}},
+								Kind:    LiteralKind,
 							},
-							op: token{"=", symbolKind, location{0, 3}},
+							Op: Token{"=", SymbolKind, Location{0, 3}},
 						},
-						kind: binaryKind,
+						Kind: BinaryKind,
 					},
-					b: expression{
-						binary: &binaryExpression{
-							a: expression{
-								literal: &token{"4", numericKind, location{0, 12}},
-								kind:    literalKind,
+					B: Expression{
+						Binary: &BinaryExpression{
+							A: Expression{
+								Literal: &Token{"4", NumericKind, Location{0, 12}},
+								Kind:    LiteralKind,
 							},
-							b: expression{
-								literal: &token{"5", numericKind, location{0, 17}},
-								kind:    literalKind,
+							B: Expression{
+								Literal: &Token{"5", NumericKind, Location{0, 17}},
+								Kind:    LiteralKind,
 							},
-							op: token{"=", symbolKind, location{0, 15}},
+							Op: Token{"=", SymbolKind, Location{0, 15}},
 						},
-						kind: binaryKind,
+						Kind: BinaryKind,
 					},
-					op: token{"and", keywordKind, location{0, 8}},
+					Op: Token{"and", KeywordKind, Location{0, 8}},
 				},
-				kind: binaryKind,
+				Kind: BinaryKind,
 			},
 		},
 	}
 
 	for _, test := range tests {
 		fmt.Println("(Parser) Testing: ", test.source)
-		tokens, err := lex(test.source)
+		Tokens, err := lex(test.source)
 		assert.Nil(t, err)
 
 		parser := Parser{}
-		ast, cursor, ok := parser.parseExpression(tokens, 0, []token{}, 0)
+		ast, cursor, ok := parser.parseExpression(Tokens, 0, []Token{}, 0)
 		assert.True(t, ok, err, test.source)
-		assert.Equal(t, cursor, uint(len(tokens)))
+		assert.Equal(t, cursor, uint(len(Tokens)))
 		assert.Equal(t, ast, test.ast, test.source)
 	}
 }
@@ -76,45 +76,45 @@ func TestParse(t *testing.T) {
 					{
 						Kind: InsertKind,
 						InsertStatement: &InsertStatement{
-							table: token{
-								loc:   location{col: 12, line: 0},
-								kind:  identifierKind,
-								value: "users",
+							Table: Token{
+								Loc:   Location{Col: 12, Line: 0},
+								Kind:  IdentifierKind,
+								Value: "users",
 							},
-							values: &[]*expression{
+							Values: &[]*Expression{
 								{
-									literal: &token{
-										loc:   location{col: 26, line: 0},
-										kind:  numericKind,
-										value: "105",
+									Literal: &Token{
+										Loc:   Location{Col: 26, Line: 0},
+										Kind:  NumericKind,
+										Value: "105",
 									},
-									kind: literalKind,
+									Kind: LiteralKind,
 								},
 								{
-									binary: &binaryExpression{
-										a: expression{
-											literal: &token{
-												loc:   location{col: 32, line: 0},
-												kind:  numericKind,
-												value: "233",
+									Binary: &BinaryExpression{
+										A: Expression{
+											Literal: &Token{
+												Loc:   Location{Col: 32, Line: 0},
+												Kind:  NumericKind,
+												Value: "233",
 											},
-											kind: literalKind,
+											Kind: LiteralKind,
 										},
-										b: expression{
-											literal: &token{
-												loc:   location{col: 39, line: 0},
-												kind:  numericKind,
-												value: "42",
+										B: Expression{
+											Literal: &Token{
+												Loc:   Location{Col: 39, Line: 0},
+												Kind:  NumericKind,
+												Value: "42",
 											},
-											kind: literalKind,
+											Kind: LiteralKind,
 										},
-										op: token{
-											loc:   location{col: 37, line: 0},
-											kind:  symbolKind,
-											value: string(plusSymbol),
+										Op: Token{
+											Loc:   Location{Col: 37, Line: 0},
+											Kind:  SymbolKind,
+											Value: string(PlusSymbol),
 										},
 									},
-									kind: binaryKind,
+									Kind: BinaryKind,
 								},
 							},
 						},
@@ -129,34 +129,34 @@ func TestParse(t *testing.T) {
 					{
 						Kind: CreateTableKind,
 						CreateTableStatement: &CreateTableStatement{
-							name: token{
-								loc:   location{col: 13, line: 0},
-								kind:  identifierKind,
-								value: "users",
+							Name: Token{
+								Loc:   Location{Col: 13, Line: 0},
+								Kind:  IdentifierKind,
+								Value: "users",
 							},
-							cols: &[]*columnDefinition{
+							Cols: &[]*ColumnDefinition{
 								{
-									name: token{
-										loc:   location{col: 20, line: 0},
-										kind:  identifierKind,
-										value: "id",
+									Name: Token{
+										Loc:   Location{Col: 20, Line: 0},
+										Kind:  IdentifierKind,
+										Value: "id",
 									},
-									datatype: token{
-										loc:   location{col: 23, line: 0},
-										kind:  keywordKind,
-										value: "int",
+									Datatype: Token{
+										Loc:   Location{Col: 23, Line: 0},
+										Kind:  KeywordKind,
+										Value: "int",
 									},
 								},
 								{
-									name: token{
-										loc:   location{col: 28, line: 0},
-										kind:  identifierKind,
-										value: "name",
+									Name: Token{
+										Loc:   Location{Col: 28, Line: 0},
+										Kind:  IdentifierKind,
+										Value: "name",
 									},
-									datatype: token{
-										loc:   location{col: 33, line: 0},
-										kind:  keywordKind,
-										value: "text",
+									Datatype: Token{
+										Loc:   Location{Col: 33, Line: 0},
+										Kind:  KeywordKind,
+										Value: "text",
 									},
 								},
 							},
@@ -172,17 +172,17 @@ func TestParse(t *testing.T) {
 					{
 						Kind: SelectKind,
 						SelectStatement: &SelectStatement{
-							item: &[]*selectItem{
+							Item: &[]*selectItem{
 								{
-									asterisk: true,
+									Asterisk: true,
 								},
 								{
-									exp: &expression{
-										kind: literalKind,
-										literal: &token{
-											loc:   location{col: 10, line: 0},
-											kind:  identifierKind,
-											value: "exclusive",
+									Exp: &Expression{
+										Kind: LiteralKind,
+										Literal: &Token{
+											Loc:   Location{Col: 10, Line: 0},
+											Kind:  IdentifierKind,
+											Value: "exclusive",
 										},
 									},
 								},
@@ -199,37 +199,37 @@ func TestParse(t *testing.T) {
 					{
 						Kind: SelectKind,
 						SelectStatement: &SelectStatement{
-							item: &[]*selectItem{
+							Item: &[]*selectItem{
 								{
-									exp: &expression{
-										kind: literalKind,
-										literal: &token{
-											loc:   location{col: 7, line: 0},
-											kind:  identifierKind,
-											value: "id",
+									Exp: &Expression{
+										Kind: LiteralKind,
+										Literal: &Token{
+											Loc:   Location{Col: 7, Line: 0},
+											Kind:  IdentifierKind,
+											Value: "id",
 										},
 									},
 								},
 								{
-									exp: &expression{
-										kind: literalKind,
-										literal: &token{
-											loc:   location{col: 11, line: 0},
-											kind:  identifierKind,
-											value: "name",
+									Exp: &Expression{
+										Kind: LiteralKind,
+										Literal: &Token{
+											Loc:   Location{Col: 11, Line: 0},
+											Kind:  IdentifierKind,
+											Value: "name",
 										},
 									},
-									as: &token{
-										loc:   location{col: 19, line: 0},
-										kind:  identifierKind,
-										value: "fullname",
+									As: &Token{
+										Loc:   Location{Col: 19, Line: 0},
+										Kind:  IdentifierKind,
+										Value: "fullname",
 									},
 								},
 							},
-							from: &token{
-								loc:   location{col: 33, line: 0},
-								kind:  identifierKind,
-								value: "users",
+							From: &Token{
+								Loc:   Location{Col: 33, Line: 0},
+								Kind:  IdentifierKind,
+								Value: "users",
 							},
 						},
 					},

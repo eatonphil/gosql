@@ -57,12 +57,12 @@ func (mc memoryCell) equals(b memoryCell) bool {
 	return bytes.Equal(mc, b)
 }
 
-func literalToMemoryCell(t *token) memoryCell {
-	if t.kind == numericKind {
+func literalToMemoryCell(t *Token) memoryCell {
+	if t.Kind == NumericKind {
 		buf := new(bytes.Buffer)
-		i, err := strconv.Atoi(t.value)
+		i, err := strconv.Atoi(t.Value)
 		if err != nil {
-			fmt.Printf("Corrupted data [%s]: %s\n", t.value, err)
+			fmt.Printf("Corrupted data [%s]: %s\n", t.Value, err)
 			return nil
 		}
 
@@ -75,12 +75,12 @@ func literalToMemoryCell(t *token) memoryCell {
 		return buf.Bytes()
 	}
 
-	if t.kind == stringKind {
-		return memoryCell(t.value)
+	if t.Kind == StringKind {
+		return memoryCell(t.Value)
 	}
 
-	if t.kind == boolKind {
-		if t.value == "true" {
+	if t.Kind == BoolKind {
+		if t.Value == "true" {
 			return []byte{1}
 		}
 
@@ -91,12 +91,12 @@ func literalToMemoryCell(t *token) memoryCell {
 }
 
 var (
-	trueToken  = token{kind: boolKind, value: "true"}
-	falseToken = token{kind: boolKind, value: "false"}
+	trueToken  = Token{Kind: BoolKind, Value: "true"}
+	falseToken = Token{Kind: BoolKind, Value: "false"}
 
 	trueMemoryCell  = literalToMemoryCell(&trueToken)
 	falseMemoryCell = literalToMemoryCell(&falseToken)
-	nullMemoryCell  = literalToMemoryCell(&token{kind: nullKind})
+	nullMemoryCell  = literalToMemoryCell(&Token{Kind: NullKind})
 )
 
 type treeItem struct {
@@ -110,7 +110,7 @@ func (te treeItem) Less(than llrb.Item) bool {
 
 type index struct {
 	name       string
-	exp        expression
+	exp        Expression
 	unique     bool
 	primaryKey bool
 	tree       *llrb.LLRB
@@ -138,29 +138,29 @@ func (i *index) addRow(t *table, rowIndex uint) error {
 	return nil
 }
 
-func (i *index) applicableValue(exp expression) *expression {
-	if exp.kind != binaryKind {
+func (i *index) applicableValue(exp Expression) *Expression {
+	if exp.Kind != BinaryKind {
 		return nil
 	}
 
-	be := exp.binary
-	// Find the column and the value in the binary expression
-	columnExp := be.a
-	valueExp := be.b
-	if columnExp.generateCode() != i.exp.generateCode() {
-		columnExp = be.b
-		valueExp = be.a
+	be := exp.Binary
+	// Find the column and the value in the binary Expression
+	columnExp := be.A
+	valueExp := be.B
+	if columnExp.GenerateCode() != i.exp.GenerateCode() {
+		columnExp = be.B
+		valueExp = be.A
 	}
 
 	// Neither side is applicable, return nil
-	if columnExp.generateCode() != i.exp.generateCode() {
+	if columnExp.GenerateCode() != i.exp.GenerateCode() {
 		return nil
 	}
 
-	supportedChecks := []symbol{eqSymbol, neqSymbol, gtSymbol, gteSymbol, ltSymbol, lteSymbol}
+	supportedChecks := []Symbol{EqSymbol, NeqSymbol, GtSymbol, GteSymbol, LtSymbol, LteSymbol}
 	supported := false
 	for _, sym := range supportedChecks {
-		if string(sym) == be.op.value {
+		if string(sym) == be.Op.Value {
 			supported = true
 			break
 		}
@@ -169,7 +169,7 @@ func (i *index) applicableValue(exp expression) *expression {
 		return nil
 	}
 
-	if valueExp.kind != literalKind {
+	if valueExp.Kind != LiteralKind {
 		fmt.Println("Only index checks on literals supported")
 		return nil
 	}
@@ -177,7 +177,7 @@ func (i *index) applicableValue(exp expression) *expression {
 	return &valueExp
 }
 
-func (i *index) newTableFromSubset(t *table, exp expression) *table {
+func (i *index) newTableFromSubset(t *table, exp Expression) *table {
 	valueExp := i.applicableValue(exp)
 	if valueExp == nil {
 		return t
@@ -192,8 +192,8 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 	tiValue := treeItem{value: value}
 
 	indexes := []uint{}
-	switch symbol(exp.binary.op.value) {
-	case eqSymbol:
+	switch Symbol(exp.Binary.Op.Value) {
+	case EqSymbol:
 		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
 			ti := i.(treeItem)
 
@@ -204,7 +204,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 			indexes = append(indexes, ti.index)
 			return true
 		})
-	case neqSymbol:
+	case NeqSymbol:
 		i.tree.AscendGreaterOrEqual(llrb.Inf(-1), func(i llrb.Item) bool {
 			ti := i.(treeItem)
 			if bytes.Equal(ti.value, value) {
@@ -213,7 +213,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 
 			return true
 		})
-	case ltSymbol:
+	case LtSymbol:
 		i.tree.DescendLessOrEqual(tiValue, func(i llrb.Item) bool {
 			ti := i.(treeItem)
 			if bytes.Compare(ti.value, value) < 0 {
@@ -222,7 +222,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 
 			return true
 		})
-	case lteSymbol:
+	case LteSymbol:
 		i.tree.DescendLessOrEqual(tiValue, func(i llrb.Item) bool {
 			ti := i.(treeItem)
 			if bytes.Compare(ti.value, value) <= 0 {
@@ -231,7 +231,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 
 			return true
 		})
-	case gtSymbol:
+	case GtSymbol:
 		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
 			ti := i.(treeItem)
 			if bytes.Compare(ti.value, value) > 0 {
@@ -240,7 +240,7 @@ func (i *index) newTableFromSubset(t *table, exp expression) *table {
 
 			return true
 		})
-	case gteSymbol:
+	case GteSymbol:
 		i.tree.AscendGreaterOrEqual(tiValue, func(i llrb.Item) bool {
 			ti := i.(treeItem)
 			if bytes.Compare(ti.value, value) >= 0 {
@@ -282,15 +282,15 @@ func createTable() *table {
 	}
 }
 
-func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
-	if exp.kind != literalKind {
+func (t *table) evaluateLiteralCell(rowIndex uint, exp Expression) (memoryCell, string, ColumnType, error) {
+	if exp.Kind != LiteralKind {
 		return nil, "", 0, ErrInvalidCell
 	}
 
-	lit := exp.literal
-	if lit.kind == identifierKind {
+	lit := exp.Literal
+	if lit.Kind == IdentifierKind {
 		for i, tableCol := range t.columns {
-			if tableCol == lit.value {
+			if tableCol == lit.Value {
 				return t.rows[rowIndex][i], tableCol, t.columnTypes[i], nil
 			}
 		}
@@ -299,36 +299,36 @@ func (t *table) evaluateLiteralCell(rowIndex uint, exp expression) (memoryCell, 
 	}
 
 	columnType := IntType
-	if lit.kind == stringKind {
+	if lit.Kind == StringKind {
 		columnType = TextType
-	} else if lit.kind == boolKind {
+	} else if lit.Kind == BoolKind {
 		columnType = BoolType
 	}
 
 	return literalToMemoryCell(lit), "?column?", columnType, nil
 }
 
-func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
-	if exp.kind != binaryKind {
+func (t *table) evaluateBinaryCell(rowIndex uint, exp Expression) (memoryCell, string, ColumnType, error) {
+	if exp.Kind != BinaryKind {
 		return nil, "", 0, ErrInvalidCell
 	}
 
-	bexp := exp.binary
+	bexp := exp.Binary
 
-	l, _, lt, err := t.evaluateCell(rowIndex, bexp.a)
+	l, _, lt, err := t.evaluateCell(rowIndex, bexp.A)
 	if err != nil {
 		return nil, "", 0, err
 	}
 
-	r, _, rt, err := t.evaluateCell(rowIndex, bexp.b)
+	r, _, rt, err := t.evaluateCell(rowIndex, bexp.B)
 	if err != nil {
 		return nil, "", 0, err
 	}
 
-	switch bexp.op.kind {
-	case symbolKind:
-		switch symbol(bexp.op.value) {
-		case eqSymbol:
+	switch bexp.Op.Kind {
+	case SymbolKind:
+		switch Symbol(bexp.Op.Value) {
+		case EqSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
@@ -347,7 +347,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			return falseMemoryCell, "?column?", BoolType, nil
-		case neqSymbol:
+		case NeqSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
@@ -357,7 +357,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			return falseMemoryCell, "?column?", BoolType, nil
-		case concatSymbol:
+		case ConcatSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", TextType, nil
 			}
@@ -366,8 +366,8 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 				return nil, "", 0, ErrInvalidOperands
 			}
 
-			return literalToMemoryCell(&token{kind: stringKind, value: *l.AsText() + *r.AsText()}), "?column?", TextType, nil
-		case plusSymbol:
+			return literalToMemoryCell(&Token{Kind: StringKind, Value: *l.AsText() + *r.AsText()}), "?column?", TextType, nil
+		case PlusSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", IntType, nil
 			}
@@ -377,8 +377,8 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			iValue := int(*l.AsInt() + *r.AsInt())
-			return literalToMemoryCell(&token{kind: numericKind, value: strconv.Itoa(iValue)}), "?column?", IntType, nil
-		case ltSymbol:
+			return literalToMemoryCell(&Token{Kind: NumericKind, Value: strconv.Itoa(iValue)}), "?column?", IntType, nil
+		case LtSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
@@ -392,7 +392,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			return falseMemoryCell, "?column?", BoolType, nil
-		case lteSymbol:
+		case LteSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
@@ -406,7 +406,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			return falseMemoryCell, "?column?", BoolType, nil
-		case gtSymbol:
+		case GtSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
@@ -420,7 +420,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			return falseMemoryCell, "?column?", BoolType, nil
-		case gteSymbol:
+		case GteSymbol:
 			if len(l) == 0 || len(r) == 0 {
 				return nullMemoryCell, "?column?", BoolType, nil
 			}
@@ -438,9 +438,9 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			// TODO
 			break
 		}
-	case keywordKind:
-		switch keyword(bexp.op.value) {
-		case andKeyword:
+	case KeywordKind:
+		switch Keyword(bexp.Op.Value) {
+		case AndKeyword:
 			res := falseMemoryCell
 			if lt != BoolType || rt != BoolType {
 				return nil, "", 0, ErrInvalidOperands
@@ -453,7 +453,7 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 			}
 
 			return res, "?column?", BoolType, nil
-		case orKeyword:
+		case OrKeyword:
 			res := falseMemoryCell
 			if lt != BoolType || rt != BoolType {
 				return nil, "", 0, ErrInvalidOperands
@@ -475,11 +475,11 @@ func (t *table) evaluateBinaryCell(rowIndex uint, exp expression) (memoryCell, s
 	return nil, "", 0, ErrInvalidCell
 }
 
-func (t *table) evaluateCell(rowIndex uint, exp expression) (memoryCell, string, ColumnType, error) {
-	switch exp.kind {
-	case literalKind:
+func (t *table) evaluateCell(rowIndex uint, exp Expression) (memoryCell, string, ColumnType, error) {
+	switch exp.Kind {
+	case LiteralKind:
 		return t.evaluateLiteralCell(rowIndex, exp)
-	case binaryKind:
+	case BinaryKind:
 		return t.evaluateBinaryCell(rowIndex, exp)
 	default:
 		return nil, "", 0, ErrInvalidCell
@@ -488,29 +488,29 @@ func (t *table) evaluateCell(rowIndex uint, exp expression) (memoryCell, string,
 
 type indexAndExpression struct {
 	i *index
-	e expression
+	e Expression
 }
 
-func (t *table) getApplicableIndexes(where *expression) []indexAndExpression {
-	var linearizeExpressions func(where *expression, exps []expression) []expression
-	linearizeExpressions = func(where *expression, exps []expression) []expression {
-		if where == nil || where.kind != binaryKind {
+func (t *table) getApplicableIndexes(where *Expression) []indexAndExpression {
+	var linearizeExpressions func(where *Expression, exps []Expression) []Expression
+	linearizeExpressions = func(where *Expression, exps []Expression) []Expression {
+		if where == nil || where.Kind != BinaryKind {
 			return exps
 		}
 
-		if where.binary.op.value == string(orKeyword) {
+		if where.Binary.Op.Value == string(OrKeyword) {
 			return exps
 		}
 
-		if where.binary.op.value == string(andKeyword) {
-			exps := linearizeExpressions(&where.binary.a, exps)
-			return linearizeExpressions(&where.binary.b, exps)
+		if where.Binary.Op.Value == string(AndKeyword) {
+			exps := linearizeExpressions(&where.Binary.A, exps)
+			return linearizeExpressions(&where.Binary.B, exps)
 		}
 
 		return append(exps, *where)
 	}
 
-	exps := linearizeExpressions(where, []expression{})
+	exps := linearizeExpressions(where, []Expression{})
 
 	iAndE := []indexAndExpression{}
 	for _, exp := range exps {
@@ -534,27 +534,27 @@ type MemoryBackend struct {
 func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	t := createTable()
 
-	if slct.from != nil {
+	if slct.From != nil {
 		var ok bool
-		t, ok = mb.tables[slct.from.value]
+		t, ok = mb.tables[slct.From.Value]
 		if !ok {
 			return nil, ErrTableDoesNotExist
 		}
 	}
 
-	if slct.item == nil || len(*slct.item) == 0 {
+	if slct.Item == nil || len(*slct.Item) == 0 {
 		return &Results{}, nil
 	}
 
 	results := [][]Cell{}
 	columns := []ResultColumn{}
 
-	if slct.from == nil {
+	if slct.From == nil {
 		t = createTable()
 		t.rows = [][]memoryCell{{}}
 	}
 
-	for _, iAndE := range t.getApplicableIndexes(slct.where) {
+	for _, iAndE := range t.getApplicableIndexes(slct.Where) {
 		index := iAndE.i
 		exp := iAndE.e
 		t = index.newTableFromSubset(t, exp)
@@ -562,22 +562,22 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 
 	// Expand SELECT * at the AST level into a SELECT on all columns
 	finalItems := []*selectItem{}
-	for _, item := range *slct.item {
-		if item.asterisk {
+	for _, item := range *slct.Item {
+		if item.Asterisk {
 			newItems := []*selectItem{}
 			for j := 0; j < len(t.columns); j++ {
 				newSelectItem := &selectItem{
-					exp: &expression{
-						literal: &token{
-							value: t.columns[j],
-							kind:  identifierKind,
-							loc:   location{0, uint(len("SELECT") + 1)},
+					Exp: &Expression{
+						Literal: &Token{
+							Value: t.columns[j],
+							Kind:  IdentifierKind,
+							Loc:   Location{0, uint(len("SELECT") + 1)},
 						},
-						binary: nil,
-						kind:   literalKind,
+						Binary: nil,
+						Kind:   LiteralKind,
 					},
-					asterisk: false,
-					as:       nil,
+					Asterisk: false,
+					As:       nil,
 				}
 				newItems = append(newItems, newSelectItem)
 			}
@@ -591,8 +591,8 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		result := []Cell{}
 		isFirstRow := len(results) == 0
 
-		if slct.where != nil {
-			val, _, _, err := t.evaluateCell(uint(i), *slct.where)
+		if slct.Where != nil {
+			val, _, _, err := t.evaluateCell(uint(i), *slct.Where)
 			if err != nil {
 				return nil, err
 			}
@@ -603,7 +603,7 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		}
 
 		for _, col := range finalItems {
-			value, columnName, columnType, err := t.evaluateCell(uint(i), *col.exp)
+			value, columnName, columnType, err := t.evaluateCell(uint(i), *col.Exp)
 			if err != nil {
 				return nil, err
 			}
@@ -628,22 +628,22 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 }
 
 func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
-	t, ok := mb.tables[inst.table.value]
+	t, ok := mb.tables[inst.Table.Value]
 	if !ok {
 		return ErrTableDoesNotExist
 	}
 
-	if inst.values == nil {
+	if inst.Values == nil {
 		return nil
 	}
 
-	if len(*inst.values) != len(t.columns) {
+	if len(*inst.Values) != len(t.columns) {
 		return ErrMissingValues
 	}
 
 	row := []memoryCell{}
-	for _, valueNode := range *inst.values {
-		if valueNode.kind != literalKind {
+	for _, valueNode := range *inst.Values {
+		if valueNode.Kind != LiteralKind {
 			fmt.Println("Skipping non-literal.")
 			continue
 		}
@@ -672,23 +672,23 @@ func (mb *MemoryBackend) Insert(inst *InsertStatement) error {
 }
 
 func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
-	if _, ok := mb.tables[crt.name.value]; ok {
+	if _, ok := mb.tables[crt.Name.Value]; ok {
 		return ErrTableAlreadyExists
 	}
 
 	t := createTable()
-	t.name = crt.name.value
+	t.name = crt.Name.Value
 	mb.tables[t.name] = t
-	if crt.cols == nil {
+	if crt.Cols == nil {
 		return nil
 	}
 
-	var primaryKey *expression = nil
-	for _, col := range *crt.cols {
-		t.columns = append(t.columns, col.name.value)
+	var primaryKey *Expression = nil
+	for _, col := range *crt.Cols {
+		t.columns = append(t.columns, col.Name.Value)
 
 		var dt ColumnType
-		switch col.datatype.value {
+		switch col.Datatype.Value {
 		case "int":
 			dt = IntType
 		case "text":
@@ -700,15 +700,15 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 			return ErrInvalidDatatype
 		}
 
-		if col.primaryKey {
+		if col.PrimaryKey {
 			if primaryKey != nil {
 				delete(mb.tables, t.name)
 				return ErrPrimaryKeyAlreadyExists
 			}
 
-			primaryKey = &expression{
-				literal: &col.name,
-				kind:    literalKind,
+			primaryKey = &Expression{
+				Literal: &col.Name,
+				Kind:    LiteralKind,
 			}
 		}
 
@@ -717,11 +717,11 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 
 	if primaryKey != nil {
 		err := mb.CreateIndex(&CreateIndexStatement{
-			table:      crt.name,
-			name:       token{value: t.name + "_pkey"},
-			unique:     true,
-			primaryKey: true,
-			exp:        *primaryKey,
+			Table:      crt.Name,
+			Name:       Token{Value: t.name + "_pkey"},
+			Unique:     true,
+			PrimaryKey: true,
+			Exp:        *primaryKey,
 		})
 		if err != nil {
 			delete(mb.tables, t.name)
@@ -733,22 +733,22 @@ func (mb *MemoryBackend) CreateTable(crt *CreateTableStatement) error {
 }
 
 func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
-	table, ok := mb.tables[ci.table.value]
+	table, ok := mb.tables[ci.Table.Value]
 	if !ok {
 		return ErrTableDoesNotExist
 	}
 
 	for _, index := range table.indexes {
-		if index.name == ci.name.value {
+		if index.name == ci.Name.Value {
 			return ErrIndexAlreadyExists
 		}
 	}
 
 	index := &index{
-		exp:        ci.exp,
-		unique:     ci.unique,
-		primaryKey: ci.primaryKey,
-		name:       ci.name.value,
+		exp:        ci.Exp,
+		unique:     ci.Unique,
+		primaryKey: ci.PrimaryKey,
+		name:       ci.Name.Value,
 		tree:       llrb.New(),
 		typ:        "rbtree",
 	}
@@ -765,8 +765,8 @@ func (mb *MemoryBackend) CreateIndex(ci *CreateIndexStatement) error {
 }
 
 func (mb *MemoryBackend) DropTable(dt *DropTableStatement) error {
-	if _, ok := mb.tables[dt.name.value]; ok {
-		delete(mb.tables, dt.name.value)
+	if _, ok := mb.tables[dt.Name.Value]; ok {
+		delete(mb.tables, dt.Name.Value)
 		return nil
 	}
 	return ErrTableDoesNotExist
@@ -781,7 +781,7 @@ func (mb *MemoryBackend) GetTables() []TableMetadata {
 		pkeyColumn := ""
 		for _, i := range t.indexes {
 			if i.primaryKey {
-				pkeyColumn = i.exp.generateCode()
+				pkeyColumn = i.exp.GenerateCode()
 			}
 
 			tm.Indexes = append(tm.Indexes, Index{
@@ -789,7 +789,7 @@ func (mb *MemoryBackend) GetTables() []TableMetadata {
 				Type:       i.typ,
 				Unique:     i.unique,
 				PrimaryKey: i.primaryKey,
-				Exp:        i.exp.generateCode(),
+				Exp:        i.exp.GenerateCode(),
 			})
 		}
 

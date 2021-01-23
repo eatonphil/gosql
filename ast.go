@@ -5,146 +5,146 @@ import (
 	"strings"
 )
 
-type expressionKind uint
+type ExpressionKind uint
 
 const (
-	literalKind expressionKind = iota
-	binaryKind
+	LiteralKind ExpressionKind = iota
+	BinaryKind
 )
 
-type binaryExpression struct {
-	a  expression
-	b  expression
-	op token
+type BinaryExpression struct {
+	A  Expression
+	B  Expression
+	Op Token
 }
 
-func (be binaryExpression) generateCode() string {
-	return fmt.Sprintf("(%s %s %s)", be.a.generateCode(), be.op.value, be.b.generateCode())
+func (be BinaryExpression) GenerateCode() string {
+	return fmt.Sprintf("(%s %s %s)", be.A.GenerateCode(), be.Op.Value, be.B.GenerateCode())
 }
 
-type expression struct {
-	literal *token
-	binary  *binaryExpression
-	kind    expressionKind
+type Expression struct {
+	Literal *Token
+	Binary  *BinaryExpression
+	Kind    ExpressionKind
 }
 
-func (e expression) generateCode() string {
-	switch e.kind {
-	case literalKind:
-		switch e.literal.kind {
-		case identifierKind:
-			return fmt.Sprintf("\"%s\"", e.literal.value)
-		case stringKind:
-			return fmt.Sprintf("'%s'", e.literal.value)
+func (e Expression) GenerateCode() string {
+	switch e.Kind {
+	case LiteralKind:
+		switch e.Literal.Kind {
+		case IdentifierKind:
+			return fmt.Sprintf("\"%s\"", e.Literal.Value)
+		case StringKind:
+			return fmt.Sprintf("'%s'", e.Literal.Value)
 		default:
-			return fmt.Sprintf(e.literal.value)
+			return fmt.Sprintf(e.Literal.Value)
 		}
 
-	case binaryKind:
-		return e.binary.generateCode()
+	case BinaryKind:
+		return e.Binary.GenerateCode()
 	}
 
 	return ""
 }
 
 type selectItem struct {
-	exp      *expression
-	asterisk bool // for *
-	as       *token
+	Exp      *Expression
+	Asterisk bool // for *
+	As       *Token
 }
 
 type SelectStatement struct {
-	item  *[]*selectItem
-	from  *token
-	where *expression
+	Item  *[]*selectItem
+	From  *Token
+	Where *Expression
 }
 
 func (ss SelectStatement) GenerateCode() string {
 	item := []string{}
-	for _, i := range *ss.item {
+	for _, i := range *ss.Item {
 		s := "\t*"
-		if !i.asterisk {
-			s = "\t" + i.exp.generateCode()
+		if !i.Asterisk {
+			s = "\t" + i.Exp.GenerateCode()
 
-			if i.as != nil {
-				s = fmt.Sprintf("\t%s AS \"%s\"", s, i.as.value)
+			if i.As != nil {
+				s = fmt.Sprintf("\t%s AS \"%s\"", s, i.As.Value)
 			}
 		}
 		item = append(item, s)
 	}
 
 	from := ""
-	if ss.from != nil {
-		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.from.value)
+	if ss.From != nil {
+		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.From.Value)
 	}
 
 	where := ""
-	if ss.where != nil {
-		where = fmt.Sprintf("\nWHERE\n\t%s", ss.where.generateCode())
+	if ss.Where != nil {
+		where = fmt.Sprintf("\nWHERE\n\t%s", ss.Where.GenerateCode())
 	}
 
 	return fmt.Sprintf("SELECT\n%s%s%s;", strings.Join(item, ",\n"), from, where)
 }
 
-type columnDefinition struct {
-	name       token
-	datatype   token
-	primaryKey bool
+type ColumnDefinition struct {
+	Name       Token
+	Datatype   Token
+	PrimaryKey bool
 }
 
 type CreateTableStatement struct {
-	name token
-	cols *[]*columnDefinition
+	Name Token
+	Cols *[]*ColumnDefinition
 }
 
 func (cts CreateTableStatement) GenerateCode() string {
 	cols := []string{}
-	for _, col := range *cts.cols {
+	for _, col := range *cts.Cols {
 		modifiers := ""
-		if col.primaryKey {
+		if col.PrimaryKey {
 			modifiers += " " + "PRIMARY KEY"
 		}
-		spec := fmt.Sprintf("\t\"%s\" %s%s", col.name.value, strings.ToUpper(col.datatype.value), modifiers)
+		spec := fmt.Sprintf("\t\"%s\" %s%s", col.Name.Value, strings.ToUpper(col.Datatype.Value), modifiers)
 		cols = append(cols, spec)
 	}
-	return fmt.Sprintf("CREATE TABLE \"%s\" (\n%s\n);", cts.name.value, strings.Join(cols, ",\n"))
+	return fmt.Sprintf("CREATE TABLE \"%s\" (\n%s\n);", cts.Name.Value, strings.Join(cols, ",\n"))
 }
 
 type CreateIndexStatement struct {
-	name       token
-	unique     bool
-	primaryKey bool
-	table      token
-	exp        expression
+	Name       Token
+	Unique     bool
+	PrimaryKey bool
+	Table      Token
+	Exp        Expression
 }
 
 func (cis CreateIndexStatement) GenerateCode() string {
 	unique := ""
-	if cis.unique {
+	if cis.Unique {
 		unique = " UNIQUE"
 	}
-	return fmt.Sprintf("CREATE%s INDEX \"%s\" ON \"%s\" (%s);", unique, cis.name.value, cis.table.value, cis.exp.generateCode())
+	return fmt.Sprintf("CREATE%s INDEX \"%s\" ON \"%s\" (%s);", unique, cis.Name.Value, cis.Table.Value, cis.Exp.GenerateCode())
 }
 
 type DropTableStatement struct {
-	name token
+	Name Token
 }
 
 func (dts DropTableStatement) GenerateCode() string {
-	return fmt.Sprintf("DROP TABLE \"%s\";", dts.name.value)
+	return fmt.Sprintf("DROP TABLE \"%s\";", dts.Name.Value)
 }
 
 type InsertStatement struct {
-	table  token
-	values *[]*expression
+	Table  Token
+	Values *[]*Expression
 }
 
 func (is InsertStatement) GenerateCode() string {
 	values := []string{}
-	for _, exp := range *is.values {
-		values = append(values, exp.generateCode())
+	for _, exp := range *is.Values {
+		values = append(values, exp.GenerateCode())
 	}
-	return fmt.Sprintf("INSERT INTO \"%s\" VALUES (%s);", is.table.value, strings.Join(values, ", "))
+	return fmt.Sprintf("INSERT INTO \"%s\" VALUES (%s);", is.Table.Value, strings.Join(values, ", "))
 }
 
 type AstKind uint

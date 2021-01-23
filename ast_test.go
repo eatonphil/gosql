@@ -15,7 +15,7 @@ func TestStatement_GenerateCode(t *testing.T) {
 			`DROP TABLE "foo";`,
 			Statement{
 				DropTableStatement: &DropTableStatement{
-					name: token{value: "foo"},
+					Name: Token{Value: "foo"},
 				},
 				Kind: DropTableKind,
 			},
@@ -27,16 +27,16 @@ func TestStatement_GenerateCode(t *testing.T) {
 );`,
 			Statement{
 				CreateTableStatement: &CreateTableStatement{
-					name: token{value: "users"},
-					cols: &[]*columnDefinition{
+					Name: Token{Value: "users"},
+					Cols: &[]*ColumnDefinition{
 						{
-							name:       token{value: "id"},
-							datatype:   token{value: "int"},
-							primaryKey: true,
+							Name:       Token{Value: "id"},
+							Datatype:   Token{Value: "int"},
+							PrimaryKey: true,
 						},
 						{
-							name:     token{value: "name"},
-							datatype: token{value: "text"},
+							Name:     Token{Value: "name"},
+							Datatype: Token{Value: "text"},
 						},
 					},
 				},
@@ -47,10 +47,10 @@ func TestStatement_GenerateCode(t *testing.T) {
 			`CREATE UNIQUE INDEX "age_idx" ON "users" ("age");`,
 			Statement{
 				CreateIndexStatement: &CreateIndexStatement{
-					name:   token{value: "age_idx"},
-					unique: true,
-					table:  token{value: "users"},
-					exp:    expression{literal: &token{value: "age", kind: identifierKind}, kind: literalKind},
+					Name:   Token{Value: "age_idx"},
+					Unique: true,
+					Table:  Token{Value: "users"},
+					Exp:    Expression{Literal: &Token{Value: "age", Kind: IdentifierKind}, Kind: LiteralKind},
 				},
 				Kind: CreateIndexKind,
 			},
@@ -59,11 +59,11 @@ func TestStatement_GenerateCode(t *testing.T) {
 			`INSERT INTO "foo" VALUES (1, 'flubberty', true);`,
 			Statement{
 				InsertStatement: &InsertStatement{
-					table: token{value: "foo"},
-					values: &[]*expression{
-						{literal: &token{value: "1", kind: numericKind}, kind: literalKind},
-						{literal: &token{value: "flubberty", kind: stringKind}, kind: literalKind},
-						{literal: &token{value: "true", kind: boolKind}, kind: literalKind},
+					Table: Token{Value: "foo"},
+					Values: &[]*Expression{
+						{Literal: &Token{Value: "1", Kind: NumericKind}, Kind: LiteralKind},
+						{Literal: &Token{Value: "flubberty", Kind: StringKind}, Kind: LiteralKind},
+						{Literal: &Token{Value: "true", Kind: BoolKind}, Kind: LiteralKind},
 					},
 				},
 				Kind: InsertKind,
@@ -79,18 +79,18 @@ WHERE
 	("id" = 2);`,
 			Statement{
 				SelectStatement: &SelectStatement{
-					item: &[]*selectItem{
-						{exp: &expression{literal: &token{value: "id", kind: identifierKind}, kind: literalKind}},
-						{exp: &expression{literal: &token{value: "name", kind: identifierKind}, kind: literalKind}},
+					Item: &[]*selectItem{
+						{Exp: &Expression{Literal: &Token{Value: "id", Kind: IdentifierKind}, Kind: LiteralKind}},
+						{Exp: &Expression{Literal: &Token{Value: "name", Kind: IdentifierKind}, Kind: LiteralKind}},
 					},
-					from: &token{value: "users"},
-					where: &expression{
-						binary: &binaryExpression{
-							a:  expression{literal: &token{value: "id", kind: identifierKind}, kind: literalKind},
-							b:  expression{literal: &token{value: "2", kind: numericKind}, kind: literalKind},
-							op: token{value: "=", kind: symbolKind},
+					From: &Token{Value: "users"},
+					Where: &Expression{
+						Binary: &BinaryExpression{
+							A:  Expression{Literal: &Token{Value: "id", Kind: IdentifierKind}, Kind: LiteralKind},
+							B:  Expression{Literal: &Token{Value: "2", Kind: NumericKind}, Kind: LiteralKind},
+							Op: Token{Value: "=", Kind: SymbolKind},
 						},
-						kind: binaryKind,
+						Kind: BinaryKind,
 					},
 				},
 				Kind: SelectKind,

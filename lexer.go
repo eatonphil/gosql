@@ -6,107 +6,107 @@ import (
 )
 
 // location of the token in source code
-type location struct {
-	line uint
-	col  uint
+type Location struct {
+	Line uint
+	Col  uint
 }
 
-// for storing SQL reserved keywords
-type keyword string
+// for storing SQL reserved Keywords
+type Keyword string
 
 const (
-	selectKeyword     keyword = "select"
-	fromKeyword       keyword = "from"
-	asKeyword         keyword = "as"
-	tableKeyword      keyword = "table"
-	createKeyword     keyword = "create"
-	dropKeyword       keyword = "drop"
-	insertKeyword     keyword = "insert"
-	intoKeyword       keyword = "into"
-	valuesKeyword     keyword = "values"
-	intKeyword        keyword = "int"
-	textKeyword       keyword = "text"
-	boolKeyword       keyword = "boolean"
-	whereKeyword      keyword = "where"
-	andKeyword        keyword = "and"
-	orKeyword         keyword = "or"
-	trueKeyword       keyword = "true"
-	falseKeyword      keyword = "false"
-	uniqueKeyword     keyword = "unique"
-	indexKeyword      keyword = "index"
-	onKeyword         keyword = "on"
-	primarykeyKeyword keyword = "primary key"
-	nullKeyword       keyword = "null"
+	SelectKeyword     Keyword = "select"
+	FromKeyword       Keyword = "from"
+	AsKeyword         Keyword = "as"
+	TableKeyword      Keyword = "table"
+	CreateKeyword     Keyword = "create"
+	DropKeyword       Keyword = "drop"
+	InsertKeyword     Keyword = "insert"
+	IntoKeyword       Keyword = "into"
+	ValuesKeyword     Keyword = "values"
+	IntKeyword        Keyword = "int"
+	TextKeyword       Keyword = "text"
+	BoolKeyword       Keyword = "boolean"
+	WhereKeyword      Keyword = "where"
+	AndKeyword        Keyword = "and"
+	OrKeyword         Keyword = "or"
+	TrueKeyword       Keyword = "true"
+	FalseKeyword      Keyword = "false"
+	UniqueKeyword     Keyword = "unique"
+	IndexKeyword      Keyword = "index"
+	OnKeyword         Keyword = "on"
+	PrimarykeyKeyword Keyword = "primary key"
+	NullKeyword       Keyword = "null"
 )
 
 // for storing SQL syntax
-type symbol string
+type Symbol string
 
 const (
-	semicolonSymbol  symbol = ";"
-	asteriskSymbol   symbol = "*"
-	commaSymbol      symbol = ","
-	leftParenSymbol  symbol = "("
-	rightParenSymbol symbol = ")"
-	eqSymbol         symbol = "="
-	neqSymbol        symbol = "<>"
-	neqSymbol2       symbol = "!="
-	concatSymbol     symbol = "||"
-	plusSymbol       symbol = "+"
-	ltSymbol         symbol = "<"
-	lteSymbol        symbol = "<="
-	gtSymbol         symbol = ">"
-	gteSymbol        symbol = ">="
+	SemicolonSymbol  Symbol = ";"
+	AsteriskSymbol   Symbol = "*"
+	CommaSymbol      Symbol = ","
+	LeftParenSymbol  Symbol = "("
+	RightParenSymbol Symbol = ")"
+	EqSymbol         Symbol = "="
+	NeqSymbol        Symbol = "<>"
+	NeqSymbol2       Symbol = "!="
+	ConcatSymbol     Symbol = "||"
+	PlusSymbol       Symbol = "+"
+	LtSymbol         Symbol = "<"
+	LteSymbol        Symbol = "<="
+	GtSymbol         Symbol = ">"
+	GteSymbol        Symbol = ">="
 )
 
-type tokenKind uint
+type TokenKind uint
 
 const (
-	keywordKind tokenKind = iota
-	symbolKind
-	identifierKind
-	stringKind
-	numericKind
-	boolKind
-	nullKind
+	KeywordKind TokenKind = iota
+	SymbolKind
+	IdentifierKind
+	StringKind
+	NumericKind
+	BoolKind
+	NullKind
 )
 
-type token struct {
-	value string
-	kind  tokenKind
-	loc   location
+type Token struct {
+	Value string
+	Kind  TokenKind
+	Loc   Location
 }
 
-func (t token) bindingPower() uint {
-	switch t.kind {
-	case keywordKind:
-		switch keyword(t.value) {
-		case andKeyword:
+func (t Token) bindingPower() uint {
+	switch t.Kind {
+	case KeywordKind:
+		switch Keyword(t.Value) {
+		case AndKeyword:
 			fallthrough
-		case orKeyword:
+		case OrKeyword:
 			return 1
 		}
-	case symbolKind:
-		switch symbol(t.value) {
-		case eqSymbol:
+	case SymbolKind:
+		switch Symbol(t.Value) {
+		case EqSymbol:
 			fallthrough
-		case neqSymbol:
+		case NeqSymbol:
 			return 2
 
-		case ltSymbol:
+		case LtSymbol:
 			fallthrough
-		case gtSymbol:
+		case GtSymbol:
 			return 3
 
 		// For some reason these are grouped separately
-		case lteSymbol:
+		case LteSymbol:
 			fallthrough
-		case gteSymbol:
+		case GteSymbol:
 			return 4
 
-		case concatSymbol:
+		case ConcatSymbol:
 			fallthrough
-		case plusSymbol:
+		case PlusSymbol:
 			return 5
 		}
 	}
@@ -114,14 +114,14 @@ func (t token) bindingPower() uint {
 	return 0
 }
 
-func (t *token) equals(other *token) bool {
-	return t.value == other.value && t.kind == other.kind
+func (t *Token) equals(other *Token) bool {
+	return t.Value == other.Value && t.Kind == other.Kind
 }
 
 // cursor indicates the current position of the lexer
 type cursor struct {
 	pointer uint
-	loc     location
+	loc     Location
 }
 
 // longestMatch iterates through a source string starting at the given
@@ -172,18 +172,18 @@ func longestMatch(source string, ic cursor, options []string) string {
 	return match
 }
 
-func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
+func lexSymbol(source string, ic cursor) (*Token, cursor, bool) {
 	c := source[ic.pointer]
 	cur := ic
 	// Will get overwritten later if not an ignored syntax
 	cur.pointer++
-	cur.loc.col++
+	cur.loc.Col++
 
 	switch c {
 	// Syntax that should be thrown away
 	case '\n':
-		cur.loc.line++
-		cur.loc.col = 0
+		cur.loc.Line++
+		cur.loc.Col = 0
 		fallthrough
 	case '\t':
 		fallthrough
@@ -192,25 +192,25 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	}
 
 	// Syntax that should be kept
-	symbols := []symbol{
-		eqSymbol,
-		neqSymbol,
-		neqSymbol2,
-		ltSymbol,
-		lteSymbol,
-		gtSymbol,
-		gteSymbol,
-		concatSymbol,
-		plusSymbol,
-		commaSymbol,
-		leftParenSymbol,
-		rightParenSymbol,
-		semicolonSymbol,
-		asteriskSymbol,
+	Symbols := []Symbol{
+		EqSymbol,
+		NeqSymbol,
+		NeqSymbol2,
+		LtSymbol,
+		LteSymbol,
+		GtSymbol,
+		GteSymbol,
+		ConcatSymbol,
+		PlusSymbol,
+		CommaSymbol,
+		LeftParenSymbol,
+		RightParenSymbol,
+		SemicolonSymbol,
+		AsteriskSymbol,
 	}
 
 	var options []string
-	for _, s := range symbols {
+	for _, s := range Symbols {
 		options = append(options, string(s))
 	}
 
@@ -222,49 +222,49 @@ func lexSymbol(source string, ic cursor) (*token, cursor, bool) {
 	}
 
 	cur.pointer = ic.pointer + uint(len(match))
-	cur.loc.col = ic.loc.col + uint(len(match))
+	cur.loc.Col = ic.loc.Col + uint(len(match))
 
 	// != is rewritten as <>: https://www.postgresql.org/docs/9.5/functions-comparison.html
-	if match == string(neqSymbol2) {
-		match = string(neqSymbol)
+	if match == string(NeqSymbol2) {
+		match = string(NeqSymbol)
 	}
 
-	return &token{
-		value: match,
-		loc:   ic.loc,
-		kind:  symbolKind,
+	return &Token{
+		Value: match,
+		Loc:   ic.loc,
+		Kind:  SymbolKind,
 	}, cur, true
 }
 
-func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
+func lexKeyword(source string, ic cursor) (*Token, cursor, bool) {
 	cur := ic
-	keywords := []keyword{
-		selectKeyword,
-		insertKeyword,
-		valuesKeyword,
-		tableKeyword,
-		createKeyword,
-		dropKeyword,
-		whereKeyword,
-		fromKeyword,
-		intoKeyword,
-		textKeyword,
-		boolKeyword,
-		intKeyword,
-		andKeyword,
-		orKeyword,
-		asKeyword,
-		trueKeyword,
-		falseKeyword,
-		uniqueKeyword,
-		indexKeyword,
-		onKeyword,
-		primarykeyKeyword,
-		nullKeyword,
+	Keywords := []Keyword{
+		SelectKeyword,
+		InsertKeyword,
+		ValuesKeyword,
+		TableKeyword,
+		CreateKeyword,
+		DropKeyword,
+		WhereKeyword,
+		FromKeyword,
+		IntoKeyword,
+		TextKeyword,
+		BoolKeyword,
+		IntKeyword,
+		AndKeyword,
+		OrKeyword,
+		AsKeyword,
+		TrueKeyword,
+		FalseKeyword,
+		UniqueKeyword,
+		IndexKeyword,
+		OnKeyword,
+		PrimarykeyKeyword,
+		NullKeyword,
 	}
 
 	var options []string
-	for _, k := range keywords {
+	for _, k := range Keywords {
 		options = append(options, string(k))
 	}
 
@@ -274,25 +274,25 @@ func lexKeyword(source string, ic cursor) (*token, cursor, bool) {
 	}
 
 	cur.pointer = ic.pointer + uint(len(match))
-	cur.loc.col = ic.loc.col + uint(len(match))
+	cur.loc.Col = ic.loc.Col + uint(len(match))
 
-	kind := keywordKind
-	if match == string(trueKeyword) || match == string(falseKeyword) {
-		kind = boolKind
+	Kind := KeywordKind
+	if match == string(TrueKeyword) || match == string(FalseKeyword) {
+		Kind = BoolKind
 	}
 
-	if match == string(nullKeyword) {
-		kind = nullKind
+	if match == string(NullKeyword) {
+		Kind = NullKind
 	}
 
-	return &token{
-		value: match,
-		kind:  kind,
-		loc:   ic.loc,
+	return &Token{
+		Value: match,
+		Kind:  Kind,
+		Loc:   ic.loc,
 	}, cur, true
 }
 
-func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
+func lexNumeric(source string, ic cursor) (*Token, cursor, bool) {
 	cur := ic
 
 	periodFound := false
@@ -300,7 +300,7 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 
 	for ; cur.pointer < uint(len(source)); cur.pointer++ {
 		c := source[cur.pointer]
-		cur.loc.col++
+		cur.loc.Col++
 
 		isDigit := c >= '0' && c <= '9'
 		isPeriod := c == '.'
@@ -342,7 +342,7 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 			cNext := source[cur.pointer+1]
 			if cNext == '-' || cNext == '+' {
 				cur.pointer++
-				cur.loc.col++
+				cur.loc.Col++
 			}
 			continue
 		}
@@ -357,17 +357,17 @@ func lexNumeric(source string, ic cursor) (*token, cursor, bool) {
 		return nil, ic, false
 	}
 
-	return &token{
-		value: source[ic.pointer:cur.pointer],
-		loc:   ic.loc,
-		kind:  numericKind,
+	return &Token{
+		Value: source[ic.pointer:cur.pointer],
+		Loc:   ic.loc,
+		Kind:  NumericKind,
 	}, cur, true
 }
 
 // lexCharacterDelimited looks through a source string starting at the
 // given cursor to find a start- and end- delimiter. The delimiter can
 // be escaped be preceeding the delimiter with itself.
-func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cursor, bool) {
+func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*Token, cursor, bool) {
 	cur := ic
 
 	if len(source[cur.pointer:]) == 0 {
@@ -378,7 +378,7 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 		return nil, ic, false
 	}
 
-	cur.loc.col++
+	cur.loc.Col++
 	cur.pointer++
 
 	var value []byte
@@ -389,29 +389,29 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 			// SQL escapes are via double characters, not backslash.
 			if cur.pointer+1 >= uint(len(source)) || source[cur.pointer+1] != delimiter {
 				cur.pointer++
-				cur.loc.col++
-				return &token{
-					value: string(value),
-					loc:   ic.loc,
-					kind:  stringKind,
+				cur.loc.Col++
+				return &Token{
+					Value: string(value),
+					Loc:   ic.loc,
+					Kind:  StringKind,
 				}, cur, true
 			}
 			value = append(value, delimiter)
 			cur.pointer++
-			cur.loc.col++
+			cur.loc.Col++
 		}
 
 		value = append(value, c)
-		cur.loc.col++
+		cur.loc.Col++
 	}
 
 	return nil, ic, false
 }
 
-func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
+func lexIdentifier(source string, ic cursor) (*Token, cursor, bool) {
 	// Handle separately if is a double-quoted identifier
-	if token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
-		return token, newCursor, true
+	if Token, newCursor, ok := lexCharacterDelimited(source, ic, '"'); ok {
+		return Token, newCursor, true
 	}
 
 	cur := ic
@@ -423,7 +423,7 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 		return nil, ic, false
 	}
 	cur.pointer++
-	cur.loc.col++
+	cur.loc.Col++
 
 	value := []byte{c}
 	for ; cur.pointer < uint(len(source)); cur.pointer++ {
@@ -434,7 +434,7 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 		isNumeric := c >= '0' && c <= '9'
 		if isAlphabetical || isNumeric || c == '$' || c == '_' {
 			value = append(value, c)
-			cur.loc.col++
+			cur.loc.Col++
 			continue
 		}
 
@@ -445,44 +445,44 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 		return nil, ic, false
 	}
 
-	return &token{
+	return &Token{
 		// Unquoted identifiers are case-insensitive
-		value: strings.ToLower(string(value)),
-		loc:   ic.loc,
-		kind:  identifierKind,
+		Value: strings.ToLower(string(value)),
+		Loc:   ic.loc,
+		Kind:  IdentifierKind,
 	}, cur, true
 }
 
-func lexString(source string, ic cursor) (*token, cursor, bool) {
+func lexString(source string, ic cursor) (*Token, cursor, bool) {
 	return lexCharacterDelimited(source, ic, '\'')
 }
 
-type lexer func(string, cursor) (*token, cursor, bool)
+type lexer func(string, cursor) (*Token, cursor, bool)
 
-// lex splits an input string into a list of tokens. This process
+// lex splits an input string into a list of Tokens. This process
 // can be divided into following tasks:
 //
 // 1. Instantiating a cursor with pointing to the start of the string
 //
 // 2. Execute all the lexers in series.
 //
-// 3. If any of the lexer generate a token then add the token to the
-// token slice, update the cursor and restart the process from the new
+// 3. If any of the lexer generate a Token then add the Token to the
+// Token slice, update the cursor and restart the process from the new
 // cursor location.
-func lex(source string) ([]*token, error) {
-	var tokens []*token
+func lex(source string) ([]*Token, error) {
+	var Tokens []*Token
 	cur := cursor{}
 
 lex:
 	for cur.pointer < uint(len(source)) {
 		lexers := []lexer{lexKeyword, lexSymbol, lexString, lexNumeric, lexIdentifier}
 		for _, l := range lexers {
-			if token, newCursor, ok := l(source, cur); ok {
+			if Token, newCursor, ok := l(source, cur); ok {
 				cur = newCursor
 
-				// Omit nil tokens for valid, but empty syntax like newlines
-				if token != nil {
-					tokens = append(tokens, token)
+				// Omit nil Tokens for valid, but empty syntax like newlines
+				if Token != nil {
+					Tokens = append(Tokens, Token)
 				}
 
 				continue lex
@@ -490,14 +490,14 @@ lex:
 		}
 
 		hint := ""
-		if len(tokens) > 0 {
-			hint = " after " + tokens[len(tokens)-1].value
+		if len(Tokens) > 0 {
+			hint = " after " + Tokens[len(Tokens)-1].Value
 		}
-		for _, t := range tokens {
-			fmt.Println(t.value)
+		for _, t := range Tokens {
+			fmt.Println(t.Value)
 		}
-		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.loc.line, cur.loc.col)
+		return nil, fmt.Errorf("Unable to lex Token%s, at %d:%d", hint, cur.loc.Line, cur.loc.Col)
 	}
 
-	return tokens, nil
+	return Tokens, nil
 }

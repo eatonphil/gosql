@@ -83,7 +83,7 @@ func TestToken_lexNumeric(t *testing.T) {
 		tok, _, ok := lexNumeric(test.value, cursor{})
 		assert.Equal(t, test.number, ok, test.value)
 		if ok {
-			assert.Equal(t, strings.TrimSpace(test.value), tok.value, test.value)
+			assert.Equal(t, strings.TrimSpace(test.value), tok.Value, test.value)
 		}
 	}
 }
@@ -133,7 +133,7 @@ func TestToken_lexString(t *testing.T) {
 		assert.Equal(t, test.string, ok, test.value)
 		if ok {
 			test.value = strings.TrimSpace(test.value)
-			assert.Equal(t, test.value[1:len(test.value)-1], tok.value, test.value)
+			assert.Equal(t, test.value[1:len(test.value)-1], tok.Value, test.value)
 		}
 	}
 }
@@ -158,76 +158,76 @@ func TestToken_lexSymbol(t *testing.T) {
 		assert.Equal(t, test.symbol, ok, test.value)
 		if ok {
 			test.value = strings.TrimSpace(test.value)
-			assert.Equal(t, test.value, tok.value, test.value)
+			assert.Equal(t, test.value, tok.Value, test.value)
 		}
 	}
 }
 
 func TestToken_lexIdentifier(t *testing.T) {
 	tests := []struct {
-		identifier bool
+		Identifier bool
 		input      string
 		value      string
 	}{
 		{
-			identifier: true,
+			Identifier: true,
 			input:      "a",
 			value:      "a",
 		},
 		{
-			identifier: true,
+			Identifier: true,
 			input:      "abc",
 			value:      "abc",
 		},
 		{
-			identifier: true,
+			Identifier: true,
 			input:      "abc ",
 			value:      "abc",
 		},
 		{
-			identifier: true,
+			Identifier: true,
 			input:      `" abc "`,
 			value:      ` abc `,
 		},
 		{
-			identifier: true,
+			Identifier: true,
 			input:      "a9$",
 			value:      "a9$",
 		},
 		{
-			identifier: true,
+			Identifier: true,
 			input:      "userName",
 			value:      "username",
 		},
 		{
-			identifier: true,
+			Identifier: true,
 			input:      `"userName"`,
 			value:      "userName",
 		},
 		// false tests
 		{
-			identifier: false,
+			Identifier: false,
 			input:      `"`,
 		},
 		{
-			identifier: false,
+			Identifier: false,
 			input:      "_sadsfa",
 		},
 		{
-			identifier: false,
+			Identifier: false,
 			input:      "9sadsfa",
 		},
 		{
-			identifier: false,
+			Identifier: false,
 			input:      " abc",
 		},
 	}
 
 	for _, test := range tests {
 		tok, _, ok := lexIdentifier(test.input, cursor{})
-		assert.Equal(t, test.identifier, ok, test.input)
+		assert.Equal(t, test.Identifier, ok, test.input)
 		if ok {
-			assert.Equal(t, test.value, tok.value, test.input)
+			assert.Equal(t, test.value, tok.Value, test.input)
 		}
 	}
 }
@@ -273,7 +273,7 @@ func TestToken_lexKeyword(t *testing.T) {
 		assert.Equal(t, test.keyword, ok, test.value)
 		if ok {
 			test.value = strings.TrimSpace(test.value)
-			assert.Equal(t, strings.ToLower(test.value), tok.value, test.value)
+			assert.Equal(t, strings.ToLower(test.value), tok.Value, test.value)
 		}
 	}
 }
@@ -281,219 +281,219 @@ func TestToken_lexKeyword(t *testing.T) {
 func TestLex(t *testing.T) {
 	tests := []struct {
 		input  string
-		tokens []token
+		Tokens []Token
 		err    error
 	}{
 		{
 			input: "select a",
-			tokens: []token{
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(selectKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(SelectKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: "a",
-					kind:  identifierKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: "a",
+					Kind:  IdentifierKind,
 				},
 			},
 		},
 		{
 			input: "select true",
-			tokens: []token{
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(selectKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(SelectKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: "true",
-					kind:  boolKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: "true",
+					Kind:  BoolKind,
 				},
 			},
 		},
 		{
 			input: "select 1",
-			tokens: []token{
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(selectKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(SelectKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: "1",
-					kind:  numericKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: "1",
+					Kind:  NumericKind,
 				},
 			},
 			err: nil,
 		},
 		{
 			input: "select 'foo' || 'bar';",
-			tokens: []token{
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(selectKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(SelectKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: "foo",
-					kind:  stringKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: "foo",
+					Kind:  StringKind,
 				},
 				{
-					loc:   location{col: 13, line: 0},
-					value: string(concatSymbol),
-					kind:  symbolKind,
+					Loc:   Location{Col: 13, Line: 0},
+					Value: string(ConcatSymbol),
+					Kind:  SymbolKind,
 				},
 				{
-					loc:   location{col: 16, line: 0},
-					value: "bar",
-					kind:  stringKind,
+					Loc:   Location{Col: 16, Line: 0},
+					Value: "bar",
+					Kind:  StringKind,
 				},
 				{
-					loc:   location{col: 21, line: 0},
-					value: string(semicolonSymbol),
-					kind:  symbolKind,
+					Loc:   Location{Col: 21, Line: 0},
+					Value: string(SemicolonSymbol),
+					Kind:  SymbolKind,
 				},
 			},
 			err: nil,
 		},
 		{
 			input: "CREATE TABLE u (id INT, name TEXT)",
-			tokens: []token{
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(createKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(CreateKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: string(tableKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: string(TableKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 13, line: 0},
-					value: "u",
-					kind:  identifierKind,
+					Loc:   Location{Col: 13, Line: 0},
+					Value: "u",
+					Kind:  IdentifierKind,
 				},
 				{
-					loc:   location{col: 15, line: 0},
-					value: "(",
-					kind:  symbolKind,
+					Loc:   Location{Col: 15, Line: 0},
+					Value: "(",
+					Kind:  SymbolKind,
 				},
 				{
-					loc:   location{col: 16, line: 0},
-					value: "id",
-					kind:  identifierKind,
+					Loc:   Location{Col: 16, Line: 0},
+					Value: "id",
+					Kind:  IdentifierKind,
 				},
 				{
-					loc:   location{col: 19, line: 0},
-					value: "int",
-					kind:  keywordKind,
+					Loc:   Location{Col: 19, Line: 0},
+					Value: "int",
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 22, line: 0},
-					value: ",",
-					kind:  symbolKind,
+					Loc:   Location{Col: 22, Line: 0},
+					Value: ",",
+					Kind:  SymbolKind,
 				},
 				{
-					loc:   location{col: 24, line: 0},
-					value: "name",
-					kind:  identifierKind,
+					Loc:   Location{Col: 24, Line: 0},
+					Value: "name",
+					Kind:  IdentifierKind,
 				},
 				{
-					loc:   location{col: 29, line: 0},
-					value: "text",
-					kind:  keywordKind,
+					Loc:   Location{Col: 29, Line: 0},
+					Value: "text",
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 33, line: 0},
-					value: ")",
-					kind:  symbolKind,
+					Loc:   Location{Col: 33, Line: 0},
+					Value: ")",
+					Kind:  SymbolKind,
 				},
 			},
 		},
 		{
-			input: "insert into users values (105, 233)",
-			tokens: []token{
+			input: "insert into users Values (105, 233)",
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(insertKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(InsertKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: string(intoKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: string(IntoKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 12, line: 0},
-					value: "users",
-					kind:  identifierKind,
+					Loc:   Location{Col: 12, Line: 0},
+					Value: "users",
+					Kind:  IdentifierKind,
 				},
 				{
-					loc:   location{col: 18, line: 0},
-					value: string(valuesKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 18, Line: 0},
+					Value: string(ValuesKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 25, line: 0},
-					value: "(",
-					kind:  symbolKind,
+					Loc:   Location{Col: 25, Line: 0},
+					Value: "(",
+					Kind:  SymbolKind,
 				},
 				{
-					loc:   location{col: 26, line: 0},
-					value: "105",
-					kind:  numericKind,
+					Loc:   Location{Col: 26, Line: 0},
+					Value: "105",
+					Kind:  NumericKind,
 				},
 				{
-					loc:   location{col: 30, line: 0},
-					value: ",",
-					kind:  symbolKind,
+					Loc:   Location{Col: 30, Line: 0},
+					Value: ",",
+					Kind:  SymbolKind,
 				},
 				{
-					loc:   location{col: 32, line: 0},
-					value: "233",
-					kind:  numericKind,
+					Loc:   Location{Col: 32, Line: 0},
+					Value: "233",
+					Kind:  NumericKind,
 				},
 				{
-					loc:   location{col: 36, line: 0},
-					value: ")",
-					kind:  symbolKind,
+					Loc:   Location{Col: 36, Line: 0},
+					Value: ")",
+					Kind:  SymbolKind,
 				},
 			},
 			err: nil,
 		},
 		{
 			input: "SELECT id FROM users;",
-			tokens: []token{
+			Tokens: []Token{
 				{
-					loc:   location{col: 0, line: 0},
-					value: string(selectKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 0, Line: 0},
+					Value: string(SelectKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 7, line: 0},
-					value: "id",
-					kind:  identifierKind,
+					Loc:   Location{Col: 7, Line: 0},
+					Value: "id",
+					Kind:  IdentifierKind,
 				},
 				{
-					loc:   location{col: 10, line: 0},
-					value: string(fromKeyword),
-					kind:  keywordKind,
+					Loc:   Location{Col: 10, Line: 0},
+					Value: string(FromKeyword),
+					Kind:  KeywordKind,
 				},
 				{
-					loc:   location{col: 15, line: 0},
-					value: "users",
-					kind:  identifierKind,
+					Loc:   Location{Col: 15, Line: 0},
+					Value: "users",
+					Kind:  IdentifierKind,
 				},
 				{
-					loc:   location{col: 20, line: 0},
-					value: ";",
-					kind:  symbolKind,
+					Loc:   Location{Col: 20, Line: 0},
+					Value: ";",
+					Kind:  SymbolKind,
 				},
 			},
 			err: nil,
@@ -501,12 +501,12 @@ func TestLex(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tokens, err := lex(test.input)
+		Tokens, err := lex(test.input)
 		assert.Equal(t, test.err, err, test.input)
-		assert.Equal(t, len(test.tokens), len(tokens), test.input)
+		assert.Equal(t, len(test.Tokens), len(Tokens), test.input)
 
-		for i, tok := range tokens {
-			assert.Equal(t, &test.tokens[i], tok, test.input)
+		for i, tok := range Tokens {
+			assert.Equal(t, &test.Tokens[i], tok, test.input)
 		}
 	}
 }

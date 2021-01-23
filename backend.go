@@ -1,5 +1,7 @@
 package gosql
 
+import "errors"
+
 type ColumnType uint
 
 const (
@@ -59,4 +61,31 @@ type Backend interface {
 	Insert(*InsertStatement) error
 	Select(*SelectStatement) (*Results, error)
 	GetTables() []TableMetadata
+}
+
+// Useful to embed when prototyping new backends
+type EmptyBackend struct{}
+
+func (eb EmptyBackend) CreateTable(_ *CreateTableStatement) error {
+	return errors.New("Create not supported")
+}
+
+func (eb EmptyBackend) DropTable(_ *DropTableStatement) error {
+	return errors.New("Drop not supported")
+}
+
+func (eb EmptyBackend) CreateIndex(_ *CreateIndexStatement) error {
+	return errors.New("Create index not supported")
+}
+
+func (eb EmptyBackend) Insert(_ *InsertStatement) error {
+	return errors.New("Insert not supported")
+}
+
+func (eb EmptyBackend) Select(_ *SelectStatement) (*Results, error) {
+	return nil, errors.New("Select not supported")
+}
+
+func (eb EmptyBackend) GetTables() []TableMetadata {
+	return nil
 }

@@ -5,17 +5,17 @@ import (
 	"fmt"
 )
 
-func tokenFromKeyword(k keyword) token {
-	return token{
-		kind:  keywordKind,
-		value: string(k),
+func TokenFromKeyword(k Keyword) Token {
+	return Token{
+		Kind:  KeywordKind,
+		Value: string(k),
 	}
 }
 
-func tokenFromSymbol(s symbol) token {
-	return token{
-		kind:  symbolKind,
-		value: string(s),
+func TokenFromSymbol(s Symbol) Token {
+	return Token{
+		Kind:  SymbolKind,
+		Value: string(s),
 	}
 }
 
@@ -24,23 +24,23 @@ type Parser struct {
 }
 
 // helpMessage prints errors found while parsing
-func (p Parser) helpMessage(tokens []*token, cursor uint, msg string) {
+func (p Parser) helpMessage(tokens []*Token, cursor uint, msg string) {
 	if p.HelpMessagesDisabled {
 		return
 	}
 
-	var c *token
+	var c *Token
 	if cursor+1 < uint(len(tokens)) {
 		c = tokens[cursor+1]
 	} else {
 		c = tokens[cursor]
 	}
 
-	fmt.Printf("[%d,%d]: %s, near: %s\n", c.loc.line, c.loc.col, msg, c.value)
+	fmt.Printf("[%d,%d]: %s, near: %s\n", c.Loc.Line, c.Loc.Col, msg, c.Value)
 }
 
 // parseTokenKind looks for a token of the given kind
-func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKind) (*token, uint, bool) {
+func (p Parser) parseTokenKind(tokens []*Token, initialCursor uint, kind TokenKind) (*Token, uint, bool) {
 	cursor := initialCursor
 
 	if cursor >= uint(len(tokens)) {
@@ -48,16 +48,16 @@ func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKi
 	}
 
 	current := tokens[cursor]
-	if current.kind == kind {
+	if current.Kind == kind {
 		return current, cursor + 1, true
 	}
 
 	return nil, initialCursor, false
 }
 
-// parseToken looks for a token the same as passed in (ignoring token
+// parseToken looks for a Token the same as passed in (ignoring Token
 // location)
-func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, bool) {
+func (p Parser) parseToken(tokens []*Token, initialCursor uint, t Token) (*Token, uint, bool) {
 	cursor := initialCursor
 
 	if cursor >= uint(len(tokens)) {
@@ -71,16 +71,16 @@ func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token
 	return nil, initialCursor, false
 }
 
-func (p Parser) parseLiteralExpression(tokens []*token, initialCursor uint) (*expression, uint, bool) {
+func (p Parser) parseLiteralExpression(tokens []*Token, initialCursor uint) (*Expression, uint, bool) {
 	cursor := initialCursor
 
-	kinds := []tokenKind{identifierKind, numericKind, stringKind, boolKind, nullKind}
+	kinds := []TokenKind{IdentifierKind, NumericKind, StringKind, BoolKind, NullKind}
 	for _, kind := range kinds {
 		t, newCursor, ok := p.parseTokenKind(tokens, cursor, kind)
 		if ok {
-			return &expression{
-				literal: t,
-				kind:    literalKind,
+			return &Expression{
+				Literal: t,
+				Kind:    LiteralKind,
 			}, newCursor, true
 		}
 	}
@@ -88,22 +88,22 @@ func (p Parser) parseLiteralExpression(tokens []*token, initialCursor uint) (*ex
 	return nil, initialCursor, false
 }
 
-func (p Parser) parseExpression(tokens []*token, initialCursor uint, delimiters []token, minBp uint) (*expression, uint, bool) {
+func (p Parser) parseExpression(tokens []*Token, initialCursor uint, delimiters []Token, minBp uint) (*Expression, uint, bool) {
 	cursor := initialCursor
 
-	var exp *expression
-	_, newCursor, ok := p.parseToken(tokens, cursor, tokenFromSymbol(leftParenSymbol))
+	var exp *Expression
+	_, newCursor, ok := p.parseToken(tokens, cursor, TokenFromSymbol(LeftParenSymbol))
 	if ok {
 		cursor = newCursor
-		rightParenToken := tokenFromSymbol(rightParenSymbol)
+		RightParenToken := TokenFromSymbol(RightParenSymbol)
 
-		exp, cursor, ok = p.parseExpression(tokens, cursor, append(delimiters, rightParenToken), minBp)
+		exp, cursor, ok = p.parseExpression(tokens, cursor, append(delimiters, RightParenToken), minBp)
 		if !ok {
-			p.helpMessage(tokens, cursor, "Expected expression after opening paren")
+			p.helpMessage(tokens, cursor, "Expected Expression after opening paren")
 			return nil, initialCursor, false
 		}
 
-		_, cursor, ok = p.parseToken(tokens, cursor, rightParenToken)
+		_, cursor, ok = p.parseToken(tokens, cursor, RightParenToken)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected closing paren")
 			return nil, initialCursor, false
@@ -125,22 +125,22 @@ outer:
 			}
 		}
 
-		binOps := []token{
-			tokenFromKeyword(andKeyword),
-			tokenFromKeyword(orKeyword),
-			tokenFromSymbol(eqSymbol),
-			tokenFromSymbol(neqSymbol),
-			tokenFromSymbol(ltSymbol),
-			tokenFromSymbol(lteSymbol),
-			tokenFromSymbol(gtSymbol),
-			tokenFromSymbol(gteSymbol),
-			tokenFromSymbol(concatSymbol),
-			tokenFromSymbol(plusSymbol),
+		binOps := []Token{
+			TokenFromKeyword(AndKeyword),
+			TokenFromKeyword(OrKeyword),
+			TokenFromSymbol(EqSymbol),
+			TokenFromSymbol(NeqSymbol),
+			TokenFromSymbol(LtSymbol),
+			TokenFromSymbol(LteSymbol),
+			TokenFromSymbol(GtSymbol),
+			TokenFromSymbol(GteSymbol),
+			TokenFromSymbol(ConcatSymbol),
+			TokenFromSymbol(PlusSymbol),
 		}
 
-		var op *token
+		var op *Token
 		for _, bo := range binOps {
-			var t *token
+			var t *Token
 			t, cursor, ok = p.parseToken(tokens, cursor, bo)
 			if ok {
 				op = t
@@ -164,13 +164,13 @@ outer:
 			p.helpMessage(tokens, cursor, "Expected right operand")
 			return nil, initialCursor, false
 		}
-		exp = &expression{
-			binary: &binaryExpression{
+		exp = &Expression{
+			Binary: &BinaryExpression{
 				*exp,
 				*b,
 				*op,
 			},
-			kind: binaryKind,
+			Kind: BinaryKind,
 		}
 		cursor = newCursor
 		lastCursor = cursor
@@ -179,7 +179,7 @@ outer:
 	return exp, cursor, true
 }
 
-func (p Parser) parseSelectItem(tokens []*token, initialCursor uint, delimiters []token) (*[]*selectItem, uint, bool) {
+func (p Parser) parseSelectItem(tokens []*Token, initialCursor uint, delimiters []Token) (*[]*selectItem, uint, bool) {
 	cursor := initialCursor
 
 	var s []*selectItem
@@ -198,7 +198,7 @@ outer:
 
 		var ok bool
 		if len(s) > 0 {
-			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(CommaSymbol))
 			if !ok {
 				p.helpMessage(tokens, cursor, "Expected comma")
 				return nil, initialCursor, false
@@ -206,31 +206,31 @@ outer:
 		}
 
 		var si selectItem
-		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(asteriskSymbol))
+		_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(AsteriskSymbol))
 		if ok {
-			si = selectItem{asterisk: true}
+			si = selectItem{Asterisk: true}
 		} else {
-			asToken := tokenFromKeyword(asKeyword)
-			delimiters := append(delimiters, tokenFromSymbol(commaSymbol), asToken)
+			asToken := TokenFromKeyword(AsKeyword)
+			delimiters := append(delimiters, TokenFromSymbol(CommaSymbol), asToken)
 			exp, newCursor, ok := p.parseExpression(tokens, cursor, delimiters, 0)
 			if !ok {
-				p.helpMessage(tokens, cursor, "Expected expression")
+				p.helpMessage(tokens, cursor, "Expected Expression")
 				return nil, initialCursor, false
 			}
 
 			cursor = newCursor
-			si.exp = exp
+			si.Exp = exp
 
 			_, cursor, ok = p.parseToken(tokens, cursor, asToken)
 			if ok {
-				id, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+				id, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 				if !ok {
 					p.helpMessage(tokens, cursor, "Expected identifier after AS")
 					return nil, initialCursor, false
 				}
 
 				cursor = newCursor
-				si.as = id
+				si.As = id
 			}
 		}
 
@@ -240,58 +240,58 @@ outer:
 	return &s, cursor, true
 }
 
-func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) (*SelectStatement, uint, bool) {
+func (p Parser) parseSelectStatement(tokens []*Token, initialCursor uint, delimiter Token) (*SelectStatement, uint, bool) {
 	var ok bool
 	cursor := initialCursor
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(selectKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(SelectKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
 	slct := SelectStatement{}
 
-	fromToken := tokenFromKeyword(fromKeyword)
-	item, newCursor, ok := p.parseSelectItem(tokens, cursor, []token{fromToken, delimiter})
+	fromToken := TokenFromKeyword(FromKeyword)
+	item, newCursor, ok := p.parseSelectItem(tokens, cursor, []Token{fromToken, delimiter})
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	slct.item = item
+	slct.Item = item
 	cursor = newCursor
 
-	whereToken := tokenFromKeyword(whereKeyword)
+	whereToken := TokenFromKeyword(WhereKeyword)
 
 	_, cursor, ok = p.parseToken(tokens, cursor, fromToken)
 	if ok {
-		from, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+		from, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected FROM item")
 			return nil, initialCursor, false
 		}
 
-		slct.from = from
+		slct.From = from
 		cursor = newCursor
 	}
 
 	_, cursor, ok = p.parseToken(tokens, cursor, whereToken)
 	if ok {
-		where, newCursor, ok := p.parseExpression(tokens, cursor, []token{delimiter}, 0)
+		where, newCursor, ok := p.parseExpression(tokens, cursor, []Token{delimiter}, 0)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected WHERE conditionals")
 			return nil, initialCursor, false
 		}
 
-		slct.where = where
+		slct.Where = where
 		cursor = newCursor
 	}
 
 	return &slct, cursor, true
 }
 
-func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter token) (*[]*expression, uint, bool) {
+func (p Parser) parseExpressions(tokens []*Token, initialCursor uint, delimiter Token) (*[]*Expression, uint, bool) {
 	cursor := initialCursor
 
-	var exps []*expression
+	var exps []*Expression
 	for {
 		if cursor >= uint(len(tokens)) {
 			return nil, initialCursor, false
@@ -304,16 +304,16 @@ func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter 
 
 		if len(exps) > 0 {
 			var ok bool
-			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(CommaSymbol))
 			if !ok {
 				p.helpMessage(tokens, cursor, "Expected comma")
 				return nil, initialCursor, false
 			}
 		}
 
-		exp, newCursor, ok := p.parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), tokenFromSymbol(rightParenSymbol)}, 0)
+		exp, newCursor, ok := p.parseExpression(tokens, cursor, []Token{TokenFromSymbol(CommaSymbol), TokenFromSymbol(RightParenSymbol)}, 0)
 		if !ok {
-			p.helpMessage(tokens, cursor, "Expected expression")
+			p.helpMessage(tokens, cursor, "Expected Expression")
 			return nil, initialCursor, false
 		}
 		cursor = newCursor
@@ -324,63 +324,63 @@ func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter 
 	return &exps, cursor, true
 }
 
-func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, _ token) (*InsertStatement, uint, bool) {
+func (p Parser) parseInsertStatement(tokens []*Token, initialCursor uint, _ Token) (*InsertStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(insertKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(InsertKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(intoKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(IntoKeyword))
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected into")
 		return nil, initialCursor, false
 	}
 
-	table, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	table, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected table name")
 		return nil, initialCursor, false
 	}
 	cursor = newCursor
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(valuesKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(ValuesKeyword))
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected VALUES")
 		return nil, initialCursor, false
 	}
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(leftParenSymbol))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(LeftParenSymbol))
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected left paren")
 		return nil, initialCursor, false
 	}
 
-	values, newCursor, ok := p.parseExpressions(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	values, newCursor, ok := p.parseExpressions(tokens, cursor, TokenFromSymbol(RightParenSymbol))
 	if !ok {
-		p.helpMessage(tokens, cursor, "Expected expressions")
+		p.helpMessage(tokens, cursor, "Expected Expressions")
 		return nil, initialCursor, false
 	}
 	cursor = newCursor
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(RightParenSymbol))
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected right paren")
 		return nil, initialCursor, false
 	}
 
 	return &InsertStatement{
-		table:  *table,
-		values: values,
+		Table:  *table,
+		Values: values,
 	}, cursor, true
 }
 
-func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, delimiter token) (*[]*columnDefinition, uint, bool) {
+func (p Parser) parseColumnDefinitions(tokens []*Token, initialCursor uint, delimiter Token) (*[]*ColumnDefinition, uint, bool) {
 	cursor := initialCursor
 
-	var cds []*columnDefinition
+	var cds []*ColumnDefinition
 	for {
 		if cursor >= uint(len(tokens)) {
 			return nil, initialCursor, false
@@ -393,21 +393,21 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 
 		if len(cds) > 0 {
 			var ok bool
-			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(CommaSymbol))
 			if !ok {
 				p.helpMessage(tokens, cursor, "Expected comma")
 				return nil, initialCursor, false
 			}
 		}
 
-		id, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+		id, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected column name")
 			return nil, initialCursor, false
 		}
 		cursor = newCursor
 
-		ty, newCursor, ok := p.parseTokenKind(tokens, cursor, keywordKind)
+		ty, newCursor, ok := p.parseTokenKind(tokens, cursor, KeywordKind)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected column type")
 			return nil, initialCursor, false
@@ -415,81 +415,81 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 		cursor = newCursor
 
 		primaryKey := false
-		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(primarykeyKeyword))
+		_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(PrimarykeyKeyword))
 		if ok {
 			primaryKey = true
 		}
 
-		cds = append(cds, &columnDefinition{
-			name:       *id,
-			datatype:   *ty,
-			primaryKey: primaryKey,
+		cds = append(cds, &ColumnDefinition{
+			Name:       *id,
+			Datatype:   *ty,
+			PrimaryKey: primaryKey,
 		})
 	}
 
 	return &cds, cursor, true
 }
 
-func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _ token) (*CreateTableStatement, uint, bool) {
+func (p Parser) parseCreateTableStatement(tokens []*Token, initialCursor uint, _ Token) (*CreateTableStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(createKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(CreateKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(tableKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(TableKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	name, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	name, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected table name")
 		return nil, initialCursor, false
 	}
 	cursor = newCursor
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(leftParenSymbol))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(LeftParenSymbol))
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected left parenthesis")
 		return nil, initialCursor, false
 	}
 
-	cols, newCursor, ok := p.parseColumnDefinitions(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	cols, newCursor, ok := p.parseColumnDefinitions(tokens, cursor, TokenFromSymbol(RightParenSymbol))
 	if !ok {
 		return nil, initialCursor, false
 	}
 	cursor = newCursor
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(RightParenSymbol))
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected right parenthesis")
 		return nil, initialCursor, false
 	}
 
 	return &CreateTableStatement{
-		name: *name,
-		cols: cols,
+		Name: *name,
+		Cols: cols,
 	}, cursor, true
 }
 
-func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ token) (*DropTableStatement, uint, bool) {
+func (p Parser) parseDropTableStatement(tokens []*Token, initialCursor uint, _ Token) (*DropTableStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(dropKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(DropKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(tableKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(TableKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	name, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	name, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected table name")
 		return nil, initialCursor, false
@@ -497,14 +497,14 @@ func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ t
 	cursor = newCursor
 
 	return &DropTableStatement{
-		name: *name,
+		Name: *name,
 	}, cursor, true
 }
 
-func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*Statement, uint, bool) {
+func (p Parser) parseStatement(tokens []*Token, initialCursor uint, _ Token) (*Statement, uint, bool) {
 	cursor := initialCursor
 
-	semicolonToken := tokenFromSymbol(semicolonSymbol)
+	semicolonToken := TokenFromSymbol(SemicolonSymbol)
 	slct, newCursor, ok := p.parseSelectStatement(tokens, cursor, semicolonToken)
 	if ok {
 		return &Statement{
@@ -548,47 +548,47 @@ func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*S
 	return nil, initialCursor, false
 }
 
-func (p Parser) parseCreateIndexStatement(tokens []*token, initialCursor uint, delimiter token) (*CreateIndexStatement, uint, bool) {
+func (p Parser) parseCreateIndexStatement(tokens []*Token, initialCursor uint, delimiter Token) (*CreateIndexStatement, uint, bool) {
 	cursor := initialCursor
 	ok := false
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(createKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(CreateKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
 	unique := false
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(uniqueKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(UniqueKeyword))
 	if ok {
 		unique = true
 	}
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(indexKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(IndexKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
 
-	name, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	name, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected index name")
 		return nil, initialCursor, false
 	}
 	cursor = newCursor
 
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(onKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, TokenFromKeyword(OnKeyword))
 	if !ok {
-		p.helpMessage(tokens, cursor, "Expected ON keyword")
+		p.helpMessage(tokens, cursor, "Expected ON Keyword")
 		return nil, initialCursor, false
 	}
 
-	table, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	table, newCursor, ok := p.parseTokenKind(tokens, cursor, IdentifierKind)
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected table name")
 		return nil, initialCursor, false
 	}
 	cursor = newCursor
 
-	e, newCursor, ok := p.parseExpression(tokens, cursor, []token{delimiter}, 0)
+	e, newCursor, ok := p.parseExpression(tokens, cursor, []Token{delimiter}, 0)
 	if !ok {
 		p.helpMessage(tokens, cursor, "Expected table name")
 		return nil, initialCursor, false
@@ -596,10 +596,10 @@ func (p Parser) parseCreateIndexStatement(tokens []*token, initialCursor uint, d
 	cursor = newCursor
 
 	return &CreateIndexStatement{
-		name:   *name,
-		unique: unique,
-		table:  *table,
-		exp:    *e,
+		Name:   *name,
+		Unique: unique,
+		Table:  *table,
+		Exp:    *e,
 	}, cursor, true
 }
 
@@ -609,7 +609,7 @@ func (p Parser) Parse(source string) (*Ast, error) {
 		return nil, err
 	}
 
-	semicolonToken := tokenFromSymbol(semicolonSymbol)
+	semicolonToken := TokenFromSymbol(SemicolonSymbol)
 	if len(tokens) > 0 && !tokens[len(tokens)-1].equals(&semicolonToken) {
 		tokens = append(tokens, &semicolonToken)
 	}
@@ -617,7 +617,7 @@ func (p Parser) Parse(source string) (*Ast, error) {
 	a := Ast{}
 	cursor := uint(0)
 	for cursor < uint(len(tokens)) {
-		stmt, newCursor, ok := p.parseStatement(tokens, cursor, tokenFromSymbol(semicolonSymbol))
+		stmt, newCursor, ok := p.parseStatement(tokens, cursor, TokenFromSymbol(SemicolonSymbol))
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected statement")
 			return nil, errors.New("Failed to parse, expected statement")
@@ -628,7 +628,7 @@ func (p Parser) Parse(source string) (*Ast, error) {
 
 		atLeastOneSemicolon := false
 		for {
-			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(semicolonSymbol))
+			_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(SemicolonSymbol))
 			if ok {
 				atLeastOneSemicolon = true
 			} else {

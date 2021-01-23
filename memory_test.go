@@ -30,8 +30,8 @@ func TestSelect(t *testing.T) {
 	err = mb.Insert(ast.Statements[0].InsertStatement)
 	assert.Nil(t, err)
 
-	value100 := literalToMemoryCell(&token{"100", numericKind, location{}})
-	value200 := literalToMemoryCell(&token{"200", numericKind, location{}})
+	Value100 := literalToMemoryCell(&Token{"100", NumericKind, Location{}})
+	Value200 := literalToMemoryCell(&Token{"200", NumericKind, Location{}})
 	xCol := ResultColumn{IntType, "x", false}
 	yCol := ResultColumn{IntType, "y", false}
 	zCol := ResultColumn{BoolType, "z", false}
@@ -44,56 +44,56 @@ func TestSelect(t *testing.T) {
 			"SELECT * FROM test",
 			Results{
 				[]ResultColumn{xCol, yCol, zCol},
-				[][]Cell{{value100, value200, trueMemoryCell}},
+				[][]Cell{{Value100, Value200, trueMemoryCell}},
 			},
 		},
 		{
 			"SELECT x FROM test",
 			Results{
 				[]ResultColumn{xCol},
-				[][]Cell{{value100}},
+				[][]Cell{{Value100}},
 			},
 		},
 		{
 			"SELECT x, y FROM test",
 			Results{
 				[]ResultColumn{xCol, yCol},
-				[][]Cell{{value100, value200}},
+				[][]Cell{{Value100, Value200}},
 			},
 		},
 		{
 			"SELECT x, y, z FROM test",
 			Results{
 				[]ResultColumn{xCol, yCol, zCol},
-				[][]Cell{{value100, value200, trueMemoryCell}},
+				[][]Cell{{Value100, Value200, trueMemoryCell}},
 			},
 		},
 		{
 			"SELECT *, x FROM test",
 			Results{
 				[]ResultColumn{xCol, yCol, zCol, xCol},
-				[][]Cell{{value100, value200, trueMemoryCell, value100}},
+				[][]Cell{{Value100, Value200, trueMemoryCell, Value100}},
 			},
 		},
 		{
 			"SELECT *, x, y FROM test",
 			Results{
 				[]ResultColumn{xCol, yCol, zCol, xCol, yCol},
-				[][]Cell{{value100, value200, trueMemoryCell, value100, value200}},
+				[][]Cell{{Value100, Value200, trueMemoryCell, Value100, Value200}},
 			},
 		},
 		{
 			"SELECT *, x, y, z FROM test",
 			Results{
 				[]ResultColumn{xCol, yCol, zCol, xCol, yCol, zCol},
-				[][]Cell{{value100, value200, trueMemoryCell, value100, value200, trueMemoryCell}},
+				[][]Cell{{Value100, Value200, trueMemoryCell, Value100, Value200, trueMemoryCell}},
 			},
 		},
 		{
 			"SELECT x, *, z FROM test",
 			Results{
 				[]ResultColumn{xCol, xCol, yCol, zCol, zCol},
-				[][]Cell{{value100, value100, value200, trueMemoryCell, trueMemoryCell}},
+				[][]Cell{{Value100, Value100, Value200, trueMemoryCell, trueMemoryCell}},
 			},
 		},
 	}
@@ -163,7 +163,7 @@ func TestCreateIndex(t *testing.T) {
 	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
 	assert.Nil(t, err)
 	assert.Equal(t, mb.tables["test"].indexes[0].name, "foo")
-	assert.Equal(t, mb.tables["test"].indexes[0].exp.generateCode(), `"x"`)
+	assert.Equal(t, mb.tables["test"].indexes[0].exp.GenerateCode(), `"x"`)
 
 	// Second time, already exists
 	err = mb.CreateIndex(ast.Statements[0].CreateIndexStatement)
@@ -232,10 +232,10 @@ func TestTable_GetApplicableIndexes(t *testing.T) {
 	for _, test := range tests {
 		ast, err = parser.Parse(fmt.Sprintf("SELECT * FROM test WHERE %s", test.where))
 		assert.Nil(t, err, test.where)
-		where := ast.Statements[0].SelectStatement.where
+		where := ast.Statements[0].SelectStatement.Where
 		indexes := []string{}
 		for _, i := range mb.tables["test"].getApplicableIndexes(where) {
-			indexes = append(indexes, i.i.exp.generateCode())
+			indexes = append(indexes, i.i.exp.GenerateCode())
 		}
 		assert.Equal(t, test.indexes, indexes, test.where)
 	}
@@ -243,16 +243,16 @@ func TestTable_GetApplicableIndexes(t *testing.T) {
 
 func TestLiteralToMemoryCell(t *testing.T) {
 	var i *int32
-	assert.Equal(t, i, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsInt())
-	assert.Equal(t, i, literalToMemoryCell(&token{value: "not an int", kind: numericKind}).AsInt())
-	assert.Equal(t, int32(2), *literalToMemoryCell(&token{value: "2", kind: numericKind}).AsInt())
+	assert.Equal(t, i, literalToMemoryCell(&Token{Value: "null", Kind: NullKind}).AsInt())
+	assert.Equal(t, i, literalToMemoryCell(&Token{Value: "not an int", Kind: NumericKind}).AsInt())
+	assert.Equal(t, int32(2), *literalToMemoryCell(&Token{Value: "2", Kind: NumericKind}).AsInt())
 
 	var s *string
-	assert.Equal(t, s, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsText())
-	assert.Equal(t, "foo", *literalToMemoryCell(&token{value: "foo", kind: stringKind}).AsText())
+	assert.Equal(t, s, literalToMemoryCell(&Token{Value: "null", Kind: NullKind}).AsText())
+	assert.Equal(t, "foo", *literalToMemoryCell(&Token{Value: "foo", Kind: StringKind}).AsText())
 
 	var b *bool
-	assert.Equal(t, b, literalToMemoryCell(&token{value: "null", kind: nullKind}).AsBool())
-	assert.Equal(t, true, *literalToMemoryCell(&token{value: "true", kind: boolKind}).AsBool())
-	assert.Equal(t, false, *literalToMemoryCell(&token{value: "false", kind: boolKind}).AsBool())
+	assert.Equal(t, b, literalToMemoryCell(&Token{Value: "null", Kind: NullKind}).AsBool())
+	assert.Equal(t, true, *literalToMemoryCell(&Token{Value: "true", Kind: BoolKind}).AsBool())
+	assert.Equal(t, false, *literalToMemoryCell(&Token{Value: "false", Kind: BoolKind}).AsBool())
 }
