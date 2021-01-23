@@ -179,10 +179,10 @@ outer:
 	return exp, cursor, true
 }
 
-func (p Parser) parseSelectItem(tokens []*Token, initialCursor uint, delimiters []Token) (*[]*selectItem, uint, bool) {
+func (p Parser) parseSelectItem(tokens []*Token, initialCursor uint, delimiters []Token) (*[]*SelectItem, uint, bool) {
 	cursor := initialCursor
 
-	var s []*selectItem
+	var s []*SelectItem
 outer:
 	for {
 		if cursor >= uint(len(tokens)) {
@@ -205,10 +205,10 @@ outer:
 			}
 		}
 
-		var si selectItem
+		var si SelectItem
 		_, cursor, ok = p.parseToken(tokens, cursor, TokenFromSymbol(AsteriskSymbol))
 		if ok {
-			si = selectItem{Asterisk: true}
+			si = SelectItem{Asterisk: true}
 		} else {
 			asToken := TokenFromKeyword(AsKeyword)
 			delimiters := append(delimiters, TokenFromSymbol(CommaSymbol), asToken)

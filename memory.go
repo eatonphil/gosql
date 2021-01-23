@@ -561,12 +561,12 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 	}
 
 	// Expand SELECT * at the AST level into a SELECT on all columns
-	finalItems := []*selectItem{}
+	finalItems := []*SelectItem{}
 	for _, item := range *slct.Item {
 		if item.Asterisk {
-			newItems := []*selectItem{}
+			newItems := []*SelectItem{}
 			for j := 0; j < len(t.columns); j++ {
-				newSelectItem := &selectItem{
+				newSelectItem := &SelectItem{
 					Exp: &Expression{
 						Literal: &Token{
 							Value: t.columns[j],

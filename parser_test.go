@@ -172,7 +172,7 @@ func TestParse(t *testing.T) {
 					{
 						Kind: SelectKind,
 						SelectStatement: &SelectStatement{
-							Item: &[]*selectItem{
+							Item: &[]*SelectItem{
 								{
 									Asterisk: true,
 								},
@@ -199,7 +199,7 @@ func TestParse(t *testing.T) {
 					{
 						Kind: SelectKind,
 						SelectStatement: &SelectStatement{
-							Item: &[]*selectItem{
+							Item: &[]*SelectItem{
 								{
 									Exp: &Expression{
 										Kind: LiteralKind,

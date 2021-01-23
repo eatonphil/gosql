@@ -79,7 +79,7 @@ WHERE
 	("id" = 2);`,
 			Statement{
 				SelectStatement: &SelectStatement{
-					Item: &[]*selectItem{
+					Item: &[]*SelectItem{
 						{Exp: &Expression{Literal: &Token{Value: "id", Kind: IdentifierKind}, Kind: LiteralKind}},
 						{Exp: &Expression{Literal: &Token{Value: "name", Kind: IdentifierKind}, Kind: LiteralKind}},
 					},

@@ -47,14 +47,14 @@ func (e Expression) GenerateCode() string {
 	return ""
 }
 
-type selectItem struct {
+type SelectItem struct {
 	Exp      *Expression
 	Asterisk bool // for *
 	As       *Token
 }
 
 type SelectStatement struct {
-	Item  *[]*selectItem
+	Item  *[]*SelectItem
 	From  *Token
 	Where *Expression
 }
