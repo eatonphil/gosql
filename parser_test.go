@@ -193,7 +193,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			source: `SELECT id, name AS fullname FROM "sketchy name"`,
+			source: `SELECT id, name AS fullname FROM "sketchy name" LIMIT 10 OFFSET 12`,
 			ast: &Ast{
 				Statements: []*Statement{
 					{
@@ -230,6 +230,22 @@ func TestParse(t *testing.T) {
 								Loc:   Location{Col: 33, Line: 0},
 								Kind:  IdentifierKind,
 								Value: "sketchy name",
+							},
+							Limit: &Expression{
+								Kind: LiteralKind,
+								Literal: &Token{
+									Loc:   Location{Col: 54, Line: 0},
+									Kind:  NumericKind,
+									Value: "10",
+								},
+							},
+							Offset: &Expression{
+								Kind: LiteralKind,
+								Literal: &Token{
+									Loc:   Location{Col: 65, Line: 0},
+									Kind:  NumericKind,
+									Value: "12",
+								},
 							},
 						},
 					},

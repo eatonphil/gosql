@@ -37,6 +37,8 @@ const (
 	OnKeyword         Keyword = "on"
 	PrimarykeyKeyword Keyword = "primary key"
 	NullKeyword       Keyword = "null"
+	LimitKeyword      Keyword = "limit"
+	OffsetKeyword     Keyword = "offset"
 )
 
 // for storing SQL syntax
@@ -261,6 +263,8 @@ func lexKeyword(source string, ic cursor) (*Token, cursor, bool) {
 		OnKeyword,
 		PrimarykeyKeyword,
 		NullKeyword,
+		LimitKeyword,
+		OffsetKeyword,
 	}
 
 	var options []string

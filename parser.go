@@ -273,15 +273,42 @@ func (p Parser) parseSelectStatement(tokens []*Token, initialCursor uint, delimi
 		cursor = newCursor
 	}
 
+	limitToken := tokenFromKeyword(LimitKeyword)
+	offsetToken := tokenFromKeyword(OffsetKeyword)
+
 	_, cursor, ok = p.parseToken(tokens, cursor, whereToken)
 	if ok {
-		where, newCursor, ok := p.parseExpression(tokens, cursor, []Token{delimiter}, 0)
+		where, newCursor, ok := p.parseExpression(tokens, cursor, []Token{limitToken, offsetToken, delimiter}, 0)
 		if !ok {
 			p.helpMessage(tokens, cursor, "Expected WHERE conditionals")
 			return nil, initialCursor, false
 		}
 
 		slct.Where = where
+		cursor = newCursor
+	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, limitToken)
+	if ok {
+		limit, newCursor, ok := p.parseExpression(tokens, cursor, []Token{offsetToken, delimiter}, 0)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected LIMIT value")
+			return nil, initialCursor, false
+		}
+
+		slct.Limit = limit
+		cursor = newCursor
+	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, offsetToken)
+	if ok {
+		offset, newCursor, ok := p.parseExpression(tokens, cursor, []Token{delimiter}, 0)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected OFFSET value")
+			return nil, initialCursor, false
+		}
+
+		slct.Offset = offset
 		cursor = newCursor
 	}
 

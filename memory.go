@@ -587,6 +587,33 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 		}
 	}
 
+	limit := len(t.rows)
+	if slct.Limit != nil {
+		v, _, _, err := t.evaluateCell(0, *slct.Limit)
+		if err != nil {
+			return nil, err
+		}
+
+		limit = int(*v.AsInt())
+	}
+	if limit < 0 {
+		return nil, fmt.Errorf("Invalid, negative limit")
+	}
+
+	offset := 0
+	if slct.Offset != nil {
+		v, _, _, err := t.evaluateCell(0, *slct.Offset)
+		if err != nil {
+			return nil, err
+		}
+
+		offset = int(*v.AsInt())
+	}
+	if offset < 0 {
+		return nil, fmt.Errorf("Invalid, negative limit")
+	}
+
+	rowIndex := -1
 	for i := range t.rows {
 		result := []Cell{}
 		isFirstRow := len(results) == 0
@@ -600,6 +627,13 @@ func (mb *MemoryBackend) Select(slct *SelectStatement) (*Results, error) {
 			if !*val.AsBool() {
 				continue
 			}
+		}
+
+		rowIndex++
+		if rowIndex < offset {
+			continue
+		} else if rowIndex > offset+limit-1 {
+			break
 		}
 
 		for _, col := range finalItems {

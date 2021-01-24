@@ -10,7 +10,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-
 func doSelect(mb Backend, slct *SelectStatement) error {
 	results, err := mb.Select(slct)
 	if err != nil {
@@ -236,31 +235,31 @@ repl:
 			case CreateIndexKind:
 				err = b.CreateIndex(ast.Statements[0].CreateIndexStatement)
 				if err != nil {
-					fmt.Println("Error adding index on table", err)
+					fmt.Println("Error adding index on table:", err)
 					continue repl
 				}
 			case CreateTableKind:
 				err = b.CreateTable(ast.Statements[0].CreateTableStatement)
 				if err != nil {
-					fmt.Println("Error creating table", err)
+					fmt.Println("Error creating table:", err)
 					continue repl
 				}
 			case DropTableKind:
 				err = b.DropTable(ast.Statements[0].DropTableStatement)
 				if err != nil {
-					fmt.Println("Error dropping table", err)
+					fmt.Println("Error dropping table:", err)
 					continue repl
 				}
 			case InsertKind:
 				err = b.Insert(stmt.InsertStatement)
 				if err != nil {
-					fmt.Println("Error inserting values", err)
+					fmt.Println("Error inserting values:", err)
 					continue repl
 				}
 			case SelectKind:
 				err := doSelect(b, stmt.SelectStatement)
 				if err != nil {
-					fmt.Println("Error selecting values", err)
+					fmt.Println("Error selecting values:", err)
 					continue repl
 				}
 			}

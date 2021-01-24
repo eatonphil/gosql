@@ -54,9 +54,11 @@ type SelectItem struct {
 }
 
 type SelectStatement struct {
-	Item  *[]*SelectItem
-	From  *Token
-	Where *Expression
+	Item   *[]*SelectItem
+	From   *Token
+	Where  *Expression
+	Limit  *Expression
+	Offset *Expression
 }
 
 func (ss SelectStatement) GenerateCode() string {
@@ -73,17 +75,24 @@ func (ss SelectStatement) GenerateCode() string {
 		item = append(item, s)
 	}
 
-	from := ""
+	code := "SELECT\n" + strings.Join(item, ",\n")
 	if ss.From != nil {
-		from = fmt.Sprintf("\nFROM\n\t\"%s\"", ss.From.Value)
+		code += fmt.Sprintf("\nFROM\n\t\"%s\"", ss.From.Value)
 	}
 
-	where := ""
 	if ss.Where != nil {
-		where = fmt.Sprintf("\nWHERE\n\t%s", ss.Where.GenerateCode())
+		code += "\nWHERE\n\t" + ss.Where.GenerateCode()
 	}
 
-	return fmt.Sprintf("SELECT\n%s%s%s;", strings.Join(item, ",\n"), from, where)
+	if ss.Limit != nil {
+		code += "\nLIMIT\n\t" + ss.Limit.GenerateCode()
+	}
+
+	if ss.Offset != nil {
+		code += "\nOFFSET\n\t" + ss.Limit.GenerateCode()
+	}
+
+	return code + ";"
 }
 
 type ColumnDefinition struct {
