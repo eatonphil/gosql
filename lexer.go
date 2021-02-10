@@ -476,19 +476,19 @@ type lexer func(string, cursor) (*Token, cursor, bool)
 // Token slice, update the cursor and restart the process from the new
 // cursor location.
 func lex(source string) ([]*Token, error) {
-	var Tokens []*Token
+	var tokens []*Token
 	cur := cursor{}
 
 lex:
 	for cur.pointer < uint(len(source)) {
 		lexers := []lexer{lexKeyword, lexSymbol, lexString, lexNumeric, lexIdentifier}
 		for _, l := range lexers {
-			if Token, newCursor, ok := l(source, cur); ok {
+			if token, newCursor, ok := l(source, cur); ok {
 				cur = newCursor
 
-				// Omit nil Tokens for valid, but empty syntax like newlines
-				if Token != nil {
-					Tokens = append(Tokens, Token)
+				// Omit nil tokens for valid, but empty syntax like newlines
+				if token != nil {
+					tokens = append(tokens, token)
 				}
 
 				continue lex
@@ -496,14 +496,14 @@ lex:
 		}
 
 		hint := ""
-		if len(Tokens) > 0 {
-			hint = " after " + Tokens[len(Tokens)-1].Value
+		if len(tokens) > 0 {
+			hint = " after " + tokens[len(tokens)-1].Value
 		}
-		for _, t := range Tokens {
+		for _, t := range tokens {
 			fmt.Println(t.Value)
 		}
-		return nil, fmt.Errorf("Unable to lex Token%s, at %d:%d", hint, cur.loc.Line, cur.loc.Col)
+		return nil, fmt.Errorf("Unable to lex token%s, at %d:%d", hint, cur.loc.Line, cur.loc.Col)
 	}
 
-	return Tokens, nil
+	return tokens, nil
 }

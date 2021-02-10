@@ -501,11 +501,11 @@ func TestLex(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		Tokens, err := lex(test.input)
+		tokens, err := lex(test.input)
 		assert.Equal(t, test.err, err, test.input)
-		assert.Equal(t, len(test.Tokens), len(Tokens), test.input)
+		assert.Equal(t, len(test.Tokens), len(tokens), test.input)
 
-		for i, tok := range Tokens {
+		for i, tok := range tokens {
 			assert.Equal(t, &test.Tokens[i], tok, test.input)
 		}
 	}

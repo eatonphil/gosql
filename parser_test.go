@@ -53,13 +53,13 @@ func TestParseExpression(t *testing.T) {
 
 	for _, test := range tests {
 		fmt.Println("(Parser) Testing: ", test.source)
-		Tokens, err := lex(test.source)
+		tokens, err := lex(test.source)
 		assert.Nil(t, err)
 
 		parser := Parser{}
-		ast, cursor, ok := parser.parseExpression(Tokens, 0, []Token{}, 0)
+		ast, cursor, ok := parser.parseExpression(tokens, 0, []Token{}, 0)
 		assert.True(t, ok, err, test.source)
-		assert.Equal(t, cursor, uint(len(Tokens)))
+		assert.Equal(t, cursor, uint(len(tokens)))
 		assert.Equal(t, ast, test.ast, test.source)
 	}
 }
