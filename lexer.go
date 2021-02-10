@@ -447,10 +447,6 @@ func lexIdentifier(source string, ic cursor) (*Token, cursor, bool) {
 		break
 	}
 
-	if len(value) == 0 {
-		return nil, ic, false
-	}
-
 	return &Token{
 		// Unquoted identifiers are case-insensitive
 		Value: strings.ToLower(string(value)),
