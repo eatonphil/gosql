@@ -134,6 +134,7 @@ tests.
 * [Writing a SQL database from scratch in Go](https://notes.eatonphil.com/database-basics.html)
 * [Binary expressions and WHERE filters](https://notes.eatonphil.com/database-basics-expressions-and-where.html)
 * [Indexes](https://notes.eatonphil.com/database-basics-indexes.html)
+* [A database/sql driver](https://notes.eatonphil.com/database-basics-a-database-sql-driver.html)
 
 ## Further reading
 
